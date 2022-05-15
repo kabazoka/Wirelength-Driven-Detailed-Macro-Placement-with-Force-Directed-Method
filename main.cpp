@@ -16,13 +16,11 @@ int vector_to_int(vector<int>);
 
 struct Constraint
 {
-    int powerplan_width = 0;
-    int minimum_channel_spacing_between_macros = 0;
-    int buffer_area_reservation_extended_distance = 0;
-    int weight_alpha = 0;
-    int weight_beta = 0;
+    int maximum_displacement;
+    int minimum_channel_spacing_between_macros;
+    int macro_halo;
 };
-struct Macro
+struct Dimension
 {
     float width{};
     float height{};
@@ -35,9 +33,9 @@ struct Component
     int pointY{};
     string orient;
     //lef info
-    Macro size;
+    Dimension size;
 };
-struct Die_Point
+struct Point
 {
     int posX;
     int posY;
@@ -48,18 +46,19 @@ int main ()
 {
     ifstream txt_file (R"(C:\Users\kabazoka\CLionProjects\iccad\2021case3\case3.txt)");
     ifstream lef_file (R"(C:\Users\kabazoka\CLionProjects\iccad\2021case3\case3.lef)");
-    ifstream def_file (R"(C:\Users\kabazoka\CLionProjects\iccad\2021case3\case3.def)");
+    ifstream def_file (R"(C:\Users\kabazoka\CLionProjects\iccad\2021case3\case3.lef)");
+    ifstream mlist (R"(C:\Users\kabazoka\CLionProjects\iccad\2021case3\case3.def)");
     string in_line;
-    vector<Die_Point> die_vector;
-    unordered_map<string, Macro> macro_map; //<macroName, size>
+    vector<Point> die_vector;
+    unordered_map<string, Dimension> macro_map; //<macroName, size>
     unordered_map<string, Component> component_map; //<compName, info>
-    unordered_map<string, Macro>::iterator macroIter;
+    unordered_map<string, Dimension>::iterator macroIter;
     unordered_map<string, Component>::iterator compIter;
     Constraint constraint;
     //read in txt
     if (txt_file.is_open())
     {
-        for (int i = 0; i < 5; ++i)
+        for (int i = 0; i < 3; ++i)
         {
             getline(txt_file, in_line);
             vector<string> content_array = splitByPattern(in_line, " ");
@@ -67,7 +66,7 @@ int main ()
             ss << content_array[1];
             if (i == 0)
             {
-                ss >> constraint.powerplan_width;
+                ss >> constraint.maximum_displacement;
             }
             else if (i == 1)
             {
@@ -75,15 +74,7 @@ int main ()
             }
             else if (i == 2)
             {
-                ss >> constraint.buffer_area_reservation_extended_distance;
-            }
-            else if (i == 3)
-            {
-                ss >> constraint.weight_alpha;
-            }
-            else if (i == 4)
-            {
-                ss >> constraint.weight_beta;
+                ss >> constraint.macro_halo;
             }
         }
     }
@@ -91,7 +82,7 @@ int main ()
     //read in lef
     if (lef_file.is_open())
     {
-        Macro macro;
+        Dimension macro;
         while (getline(lef_file, in_line))// line 1
         {
             if (in_line.find("END") != string::npos)
@@ -105,16 +96,25 @@ int main ()
             ss2 << lef_content_array[6];
             ss1 >> macro.width;
             ss2 >> macro.height;
-            macro_map.insert(pair<string, Macro>(name, macro));
+            macro_map.insert(pair<string, Dimension>(name, macro));
             getline(lef_file, in_line);// line 3 (no meaning)
             getline(lef_file, in_line);// line 4 (no meaning)
         }
     }
     lef_file.close();
-    //read in def
     if (def_file.is_open())
     {
-        while ( getline (def_file, in_line) )
+        while (getline(def_file, in_line))
+        {
+            
+        }
+        
+    }
+    
+    //read in mlist
+    if (mlist.is_open())
+    {
+        while ( getline (mlist, in_line) )
         {
             //check if readin the DIEAREA section
             if (in_line.find("DIEAREA") != string::npos)
@@ -122,12 +122,12 @@ int main ()
                 bool first_line = true;
                 bool last_line = true;
                 int cnt = 1;
-                Die_Point die_point{};
+                Point die_point{};
                 while (last_line)
                 {
                     if (!first_line)
                     {
-                        getline (def_file, in_line);
+                        getline (mlist, in_line);
                     }
                     vector<string> def_content_array = splitByPattern(in_line, " ");
                     if (first_line)
@@ -164,12 +164,12 @@ int main ()
                 for (int i = 0; i < compNum; i++)
                 {
                     int cnt = 3;
-                    getline(def_file, in_line);
+                    getline(mlist, in_line);
                     def_content_array = splitByPattern(in_line, " ");
                     string compName = def_content_array[cnt + 1];
                     component.macroName = def_content_array[cnt + 2];
                     component.size = macro_map[def_content_array[cnt + 2]];
-                    getline(def_file, in_line);
+                    getline(mlist, in_line);
                     def_content_array = splitByPattern(in_line, " ");
                     cnt = 6;
                     component.pointType = def_content_array[cnt + 1];
@@ -185,7 +185,7 @@ int main ()
                 }
             }
         }
-        def_file.close();
+        mlist.close();
     }
     else cout << "Unable to open file";
 
