@@ -14,16 +14,61 @@ vector<string> splitByPattern(string content, const string& pattern);
 string &trim(string &str);
 int vector_to_int(vector<int>);
 
+struct Dimension
+{
+    float width{};
+    float height{};
+};
+struct Point
+{
+    int posX;
+    int posY;
+};
+struct Rectangle
+{
+    Point a;
+    Point b;
+};
+
+//constraint file struct
 struct Constraint
 {
     int maximum_displacement;
     int minimum_channel_spacing_between_macros;
     int macro_halo;
 };
-struct Dimension
+
+//lef file struct
+struct SITE 
 {
-    float width{};
-    float height{};
+    string site_class;
+    Dimension site_size;
+};
+struct LAYER
+{
+    string layer_type;
+    bool direction;//0 = vertical, 1 = horizontal
+    float pitch;
+    float width;
+};
+struct PIN
+{
+    bool pin_direction;//0 = input;
+    LAYER pin_layer;
+    vector<Rectangle> rect_vector;
+};
+struct MACRO_CORE
+{
+    Dimension size;
+    SITE macro_site;
+    unordered_map<string, PIN> pin_map;
+};
+struct MACRO_BLOCK
+{
+    Dimension size;
+    SITE macro_site;
+    unordered_map<string, PIN> pin_map;
+    unordered_map<LAYER, vector<Rectangle>> obstruction;
 };
 struct Component
 {
@@ -35,11 +80,7 @@ struct Component
     //lef info
     Dimension size;
 };
-struct Point
-{
-    int posX;
-    int posY;
-};
+
 
 
 int main ()
@@ -50,11 +91,18 @@ int main ()
     ifstream mlist (R"(C:\Users\kabazoka\CLionProjects\iccad\2021case3\case3.def)");
     string in_line;
     vector<Point> die_vector;
-    unordered_map<string, Dimension> macro_map; //<macroName, size>
     unordered_map<string, Component> component_map; //<compName, info>
     unordered_map<string, Dimension>::iterator macroIter;
     unordered_map<string, Component>::iterator compIter;
     Constraint constraint;
+    //lef info
+    int lef_unit;
+    float manufacturinggrid;
+    SITE site;
+    vector<SITE> site_vector;
+    unordered_map<string, LAYER> layer_map;
+    unordered_map<string, MACRO_CORE> core_macro_map; //<macroName, Macro>
+    unordered_map<string, MACRO_BLOCK> block_macro_map; //<macroName, Macro>
     //read in txt
     if (txt_file.is_open())
     {
@@ -82,7 +130,108 @@ int main ()
     //read in lef
     if (lef_file.is_open())
     {
-        Dimension macro;
+        Dimension dms;
+        vector<string> content_array;
+        stringstream ss1, ss2;
+        LAYER layer;
+        while (getline(lef_file, in_line))
+        {
+            if (in_line.find("UNITS") != string::npos)
+            {
+                getline(lef_file, in_line);
+                content_array = splitByPattern(in_line, " ");
+                ss1 << content_array[2];
+                ss1 >> lef_unit;
+                getline(lef_file, in_line);//no meaning
+            }
+            if (in_line.find("MANUFACTURINGFRID") != string::npos)
+            {
+                content_array = splitByPattern(in_line, " ");
+                ss1 << content_array[1];
+            }
+            if(in_line.find("SITE") != string::npos)
+            {
+                getline(lef_file, in_line);
+                content_array = splitByPattern(in_line, " ");
+                ss1 << content_array[1];
+                ss2 << content_array[3];
+                ss1 >> site.site_size.width;
+                ss2 >> site.site_size.height;
+                getline(lef_file, in_line);
+                content_array = splitByPattern(in_line, " ");
+                site.site_class =  content_array[1];
+            }
+            if(in_line.find("LAYER") != string::npos)
+            {
+                content_array = splitByPattern(in_line, " ");
+                string layer_name = content_array[1];
+                getline(lef_file, in_line);
+                content_array = splitByPattern(in_line, " ");
+                layer.layer_type = content_array[4];
+                getline(lef_file, in_line);
+                content_array = splitByPattern(in_line, " ");
+                if(content_array[1] == "VERTICAL")
+                    layer.direction = 0;//0 = vertical, 1 = horizontal
+                else
+                    layer.direction = 1;
+                getline(lef_file, in_line);//PITCH
+                content_array = splitByPattern(in_line, " ");
+                ss1 << content_array[1];
+                ss1 >> layer.pitch;
+                getline(lef_file, in_line);//WIDTH
+                content_array = splitByPattern(in_line, " ");
+                ss1 << content_array[1];
+                ss1 >> layer.width;
+                layer_map.insert(pair<string, LAYER>(layer_name, layer));
+            }
+            if(in_line.find("MACRO") != string::npos)
+            {
+                content_array = splitByPattern(in_line, " ");
+                string macro_name = content_array[1];
+                getline(lef_file, in_line);
+                content_array = splitByPattern(in_line, " ");
+                if(content_array[4] == "CORE")
+                {
+                    MACRO_CORE core_macro;
+                    getline(lef_file, in_line);//FOREIGN
+                    getline(lef_file, in_line);//ORIGIN
+                    getline(lef_file, in_line);//SIZE
+                    content_array = splitByPattern(in_line, " ");
+                    ss1 << content_array[1];
+                    ss2 << content_array[2];
+                    ss1 >> core_macro.size.width;
+                    ss2 >> core_macro.size.height;
+                    getline(lef_file, in_line);//SYMMETRY
+                    getline(lef_file, in_line);//SITE
+                    getline(lef_file, in_line);//PIN
+                    content_array = splitByPattern(in_line, " ");
+                    string pin_name = content_array[1];
+                    PIN pin;
+                    while (getline(lef_file, in_line))//read in pin loop
+                    {
+                        if (in_line.find("END") != string::npos && in_line.find(pin_name) != string::npos)
+                            break;
+                        content_array = splitByPattern(in_line, " ");
+                        if(content_array[1] == "INPUT")
+                            pin.pin_direction = 0;
+                        else
+                            pin.pin_direction = 1;
+                        getline(lef_file, in_line);//PORT
+                        getline(lef_file, in_line);//LAYER
+                        
+
+                    }
+                    
+                }
+                else
+                {
+
+                }
+            }
+        }
+        
+        
+        /*
         while (getline(lef_file, in_line))// line 1
         {
             if (in_line.find("END") != string::npos)
@@ -94,12 +243,13 @@ int main ()
             stringstream ss1, ss2;
             ss1 << lef_content_array[4];
             ss2 << lef_content_array[6];
-            ss1 >> macro.width;
-            ss2 >> macro.height;
-            macro_map.insert(pair<string, Dimension>(name, macro));
+            ss1 >> dms.width;
+            ss2 >> dms.height;
+            macro_map.insert(pair<string, Dimension>(name, dms));
             getline(lef_file, in_line);// line 3 (no meaning)
             getline(lef_file, in_line);// line 4 (no meaning)
         }
+        */
     }
     lef_file.close();
     if (def_file.is_open())
@@ -230,6 +380,7 @@ vector<string> splitByPattern(string content, const string& pattern)
 {
     vector<string> words;
     size_t pos = 0;
+    trim(content);
     while ((pos = content.find(pattern)) != string::npos)
     {
         string word = content.substr(0, pos);
@@ -268,3 +419,4 @@ int vector_to_int(vector<int> num)
     }
     return n;
 }
+
