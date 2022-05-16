@@ -247,6 +247,8 @@ int main ()
                 {
                     Dimension dime;
                     MACRO_BLOCK block_macro;
+                    PIN pin;
+                    Point pointA, pointB;
                     getline(lef_file, in_line); //CLASS
                     getline(lef_file, in_line); //FOREIGN
                     getline(lef_file, in_line); //ORIGIN
@@ -258,9 +260,66 @@ int main ()
                     ss2 >> dime.height;
                     block_macro.size = dime;
                     getline(lef_file, in_line); //SYMMETRY
-                    while(getline(lef_file, in_line)) //PIN loop
+                    getline(lef_file, in_line); 
+                    while(in_line.find("PIN") != string::npos) //PIN loop
                     {
-                        //
+                        Rectangle rect;
+                        vector<Rectangle> rec_vec;
+                        content_array = splitByPattern(in_line, " ");
+                        string pin_name = content_array[1];
+                        getline(lef_file, in_line); //DIRECTION
+                        content_array = splitByPattern(in_line, " ");
+                        if(content_array[1] == "INPUT")
+                            pin.pin_direction = 0;
+                        else
+                            pin.pin_direction = 1;
+                        getline(lef_file, in_line); //USE SIGNAL
+                        getline(lef_file, in_line); //PORT
+                        getline(lef_file, in_line); //LAYER
+                        content_array = splitByPattern(in_line, " ");
+                        string layer_str = content_array[1];
+                        pin.pin_layer = layer_map[layer_str];
+                        getline(lef_file, in_line); //RECT
+                        ss1 << content_array[1];
+                        ss2 << content_array[2];
+                        ss1 >> pointA.posX;
+                        ss2 >> pointA.posY;
+                        ss1 << content_array[3];
+                        ss2 << content_array[4];
+                        ss1 >> pointB.posX;
+                        ss2 >> pointB.posY;
+                        rect.a = pointA;
+                        rect.b = pointB;
+                        rec_vec.push_back(rect);
+                        getline(lef_file, in_line); //END
+                        getline(lef_file, in_line); //END PIN
+                        getline(lef_file, in_line); //NEW LINE
+                    }
+                    if(in_line.find("OBS") != string::npos)
+                    {
+                        Rectangle rect;
+                        vector<Rectangle> rec_vec;
+                        getline(lef_file, in_line); //LAYER
+                        content_array = splitByPattern(in_line, " ");
+                        string layer_str = content_array[1];
+                        pin.pin_layer = layer_map[layer_str];
+                        while(getline(lef_file, in_line))//RECT loop
+                        {
+                            if (in_line.find("END") != string::npos)
+                                break;//end rect loop
+                            content_array = splitByPattern(in_line, " ");
+                            ss1 << content_array[1];
+                            ss2 << content_array[2];
+                            ss1 >> pointA.posX;
+                            ss2 >> pointA.posY;
+                            ss1 << content_array[3];
+                            ss2 << content_array[4];
+                            ss1 >> pointB.posX;
+                            ss2 >> pointB.posY;
+                            rect.a = pointA;
+                            rect.b = pointB;
+                            rec_vec.push_back(rect);
+                        }
                     }
                 }
             }
