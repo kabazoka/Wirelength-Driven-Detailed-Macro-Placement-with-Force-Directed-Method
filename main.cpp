@@ -85,8 +85,8 @@ struct Component
 
 int main ()
 {
-    ifstream txt_file (R"(C:\Users\kabazoka\CLionProjects\iccad\2021case3\case3.txt)");
-    ifstream lef_file (R"(C:\Users\kabazoka\CLionProjects\iccad\2021case3\case3.lef)");
+    ifstream txt_file (R"(H:\我的雲端硬碟\C++\case01\lefdef\case01.txt)");
+    ifstream lef_file (R"(H:\我的雲端硬碟\C++\case01\lefdef\case01.lef)");
     ifstream def_file (R"(C:\Users\kabazoka\CLionProjects\iccad\2021case3\case3.lef)");
     ifstream mlist (R"(C:\Users\kabazoka\CLionProjects\iccad\2021case3\case3.def)");
     string in_line;
@@ -103,6 +103,8 @@ int main ()
     unordered_map<string, LAYER> layer_map;
     unordered_map<string, MACRO_CORE> core_macro_map; //<macroName, Macro>
     unordered_map<string, MACRO_BLOCK> block_macro_map; //<macroName, Macro>
+    unordered_map<string, MACRO_CORE>::iterator core_macroIter;
+    unordered_map<string, MACRO_BLOCK>::iterator block_macroIter;
     //read in txt
     if (txt_file.is_open())
     {
@@ -161,7 +163,7 @@ int main ()
                 content_array = splitByPattern(in_line, " ");
                 site.site_class =  content_array[1];
             }
-            if(in_line.find("LAYER") != string::npos)
+            if(in_line.find("LAYER") != string::npos) //read-in layers
             {
                 content_array = splitByPattern(in_line, " ");
                 string layer_name = content_array[1];
@@ -184,13 +186,13 @@ int main ()
                 ss1 >> layer.width;
                 layer_map.insert(pair<string, LAYER>(layer_name, layer));
             }
-            if(in_line.find("MACRO") != string::npos)
+            if(in_line.find("MACRO") != string::npos) //read-in macros
             {
                 content_array = splitByPattern(in_line, " ");
                 string macro_name = content_array[1];
                 getline(lef_file, in_line);
                 content_array = splitByPattern(in_line, " ");
-                if(content_array[1] == "CORE")
+                if(content_array[1] == "CORE") //read in core macro
                 {
                     PIN pin;
                     MACRO_CORE core_macro;
@@ -242,8 +244,10 @@ int main ()
                             rec_vec.push_back(rect);
                         }
                     }
+                    core_macro_map.insert(pair<string, MACRO_CORE>(macro_name, core_macro));
+                    getline(lef_file, in_line); //get the "END MACRO_NAME" line
                 }
-                else
+                else //read-in block macros
                 {
                     Dimension dime;
                     MACRO_BLOCK block_macro;
@@ -300,28 +304,33 @@ int main ()
                         Rectangle rect;
                         vector<Rectangle> rec_vec;
                         getline(lef_file, in_line); //LAYER
-                        content_array = splitByPattern(in_line, " ");
-                        string layer_str = content_array[1];
-                        pin.pin_layer = layer_map[layer_str];
-                        while(getline(lef_file, in_line))//RECT loop
+                        while (in_line.find("END") != string::npos) //stop reading OBS if "END" occurs
                         {
-                            if (in_line.find("END") != string::npos)
-                                break;//end rect loop
                             content_array = splitByPattern(in_line, " ");
-                            ss1 << content_array[1];
-                            ss2 << content_array[2];
-                            ss1 >> pointA.posX;
-                            ss2 >> pointA.posY;
-                            ss1 << content_array[3];
-                            ss2 << content_array[4];
-                            ss1 >> pointB.posX;
-                            ss2 >> pointB.posY;
-                            rect.a = pointA;
-                            rect.b = pointB;
-                            rec_vec.push_back(rect);
+                            string layer_str = content_array[1];
+                            pin.pin_layer = layer_map[layer_str];
+                            while(getline(lef_file, in_line))//RECT loop
+                            {
+                                if (in_line.find("LAYER") != string::npos || in_line.find("END") != string::npos)
+                                    break;//end rect loop
+                                content_array = splitByPattern(in_line, " ");
+                                ss1 << content_array[1];
+                                ss2 << content_array[2];
+                                ss1 >> pointA.posX;
+                                ss2 >> pointA.posY;
+                                ss1 << content_array[3];
+                                ss2 << content_array[4];
+                                ss1 >> pointB.posX;
+                                ss2 >> pointB.posY;
+                                rect.a = pointA;
+                                rect.b = pointB;
+                                rec_vec.push_back(rect);
+                            }
                         }
-                        block_macro.obstruction.insert(pair<LAYER, vector<Rectangle> >())
+                        block_macro.obstruction.insert(pair<LAYER, vector<Rectangle> >(pin.pin_layer, rec_vec));
                     }
+                    block_macro_map.insert(pair<string, MACRO_BLOCK>(macro_name, block_macro));
+                    getline(lef_file, in_line); //get the "END MACRO_NAME" line
                 }
             }
         }
@@ -348,6 +357,7 @@ int main ()
         */
     }
     lef_file.close();
+    /*
     if (def_file.is_open())
     {
         while (getline(def_file, in_line))
@@ -356,7 +366,8 @@ int main ()
         }
         
     }
-    
+    */
+    /*
     //read in mlist
     if (mlist.is_open())
     {
@@ -432,23 +443,23 @@ int main ()
             }
         }
         mlist.close();
+        
     }
-    else cout << "Unable to open file";
-
+    else
+        cout << "Unable to open mlist file";
+    */
     //test output
     //txt
     cout << "\n***START CONSTRAINT OUTPUT***\n" << endl;
-    cout << "powerplan_width_constraint: " << constraint.powerplan_width << endl;
+    cout << "maximum_displacement_constraint: " << constraint.maximum_displacement << endl;
     cout << "minimum_channel_spacing_between_macros_constraint: " << constraint.minimum_channel_spacing_between_macros << endl;
-    cout << "buffer_area_reservation_extended_distance: " << constraint.buffer_area_reservation_extended_distance << endl;
-    cout << "weight_alpha: " << constraint.weight_alpha << endl;
-    cout << "weight_beta: " << constraint.weight_beta << endl;
+    cout << "macro_halo: " << constraint.macro_halo << endl;
     cout << "\n***END CONSTRAINT***\n" << endl;
     //lef
     cout << "\n***START LEF OUTPUT***\n" << endl;
-    for (macroIter = macro_map.begin(); macroIter != macro_map.end() ; macroIter++)
+    for (core_macroIter = core_macro_map.begin(); core_macroIter != core_macro_map.end() ; macroIter++)
     {
-        cout << macroIter-> first << " / " << macroIter -> second.width << " / " << macroIter -> second.height << endl;
+        cout << core_macroIter-> first << " / " << core_macroIter -> second.macro_site.site_class << " / " << core_macroIter -> second.size.width << endl;
     }
     cout << "\n***END LEF***\n" << endl;
     //def
