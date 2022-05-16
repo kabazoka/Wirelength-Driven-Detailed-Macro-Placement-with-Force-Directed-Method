@@ -16,8 +16,8 @@ int vector_to_int(vector<int>);
 
 struct Dimension
 {
-    float width{};
-    float height{};
+    float width;
+    float height;
 };
 struct Point
 {
@@ -190,9 +190,13 @@ int main ()
                 string macro_name = content_array[1];
                 getline(lef_file, in_line);
                 content_array = splitByPattern(in_line, " ");
-                if(content_array[4] == "CORE")
+                if(content_array[1] == "CORE")
                 {
+                    PIN pin;
                     MACRO_CORE core_macro;
+                    Point pointA, pointB;
+                    Rectangle rect;
+                    vector<Rectangle> rec_vec;
                     getline(lef_file, in_line);//FOREIGN
                     getline(lef_file, in_line);//ORIGIN
                     getline(lef_file, in_line);//SIZE
@@ -206,7 +210,6 @@ int main ()
                     getline(lef_file, in_line);//PIN
                     content_array = splitByPattern(in_line, " ");
                     string pin_name = content_array[1];
-                    PIN pin;
                     while (getline(lef_file, in_line))//read in pin loop
                     {
                         if (in_line.find("END") != string::npos && in_line.find(pin_name) != string::npos)
@@ -218,14 +221,47 @@ int main ()
                             pin.pin_direction = 1;
                         getline(lef_file, in_line);//PORT
                         getline(lef_file, in_line);//LAYER
-                        
-
+                        content_array = splitByPattern(in_line, " ");
+                        string layer = content_array[1];
+                        pin.pin_layer = layer_map[layer];
+                        while(getline(lef_file, in_line))//RECT loop
+                        {
+                            if (in_line.find("END") != string::npos)
+                                break;//end rect loop
+                            content_array = splitByPattern(in_line, " ");
+                            ss1 << content_array[1];
+                            ss2 << content_array[2];
+                            ss1 >> pointA.posX;
+                            ss2 >> pointA.posY;
+                            ss1 << content_array[3];
+                            ss2 << content_array[4];
+                            ss1 >> pointB.posX;
+                            ss2 >> pointB.posY;
+                            rect.a = pointA;
+                            rect.b = pointB;
+                            rec_vec.push_back(rect);
+                        }
                     }
-                    
                 }
                 else
                 {
-
+                    Dimension dime;
+                    MACRO_BLOCK block_macro;
+                    getline(lef_file, in_line); //CLASS
+                    getline(lef_file, in_line); //FOREIGN
+                    getline(lef_file, in_line); //ORIGIN
+                    getline(lef_file, in_line); //SIZE
+                    content_array = splitByPattern(in_line, " ");
+                    ss1 << content_array[1];
+                    ss2 << content_array[2];
+                    ss1 >> dime.width;
+                    ss2 >> dime.height;
+                    block_macro.size = dime;
+                    getline(lef_file, in_line); //SYMMETRY
+                    while(getline(lef_file, in_line)) //PIN loop
+                    {
+                        //
+                    }
                 }
             }
         }
