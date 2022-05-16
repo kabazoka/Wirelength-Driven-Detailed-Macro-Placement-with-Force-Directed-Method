@@ -68,14 +68,14 @@ struct MACRO_BLOCK
     Dimension size;
     SITE macro_site;
     unordered_map<string, PIN> pin_map;
-    unordered_map<LAYER, vector<Rectangle>> obstruction;
+    unordered_map<LAYER, vector<Rectangle> > obstruction;
 };
 struct Component
 {
     string macroName;
     string pointType;
-    int pointX{};
-    int pointY{};
+    int pointX;
+    int pointY;
     string orient;
     //lef info
     Dimension size;
@@ -320,6 +320,7 @@ int main ()
                             rect.b = pointB;
                             rec_vec.push_back(rect);
                         }
+                        block_macro.obstruction.insert(pair<LAYER, vector<Rectangle> >())
                     }
                 }
             }
