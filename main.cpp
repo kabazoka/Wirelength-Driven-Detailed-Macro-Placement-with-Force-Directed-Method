@@ -13,6 +13,8 @@ using namespace std;
 vector<string> splitByPattern(string content, const string& pattern);
 string &trim(string &str);
 int vector_to_int(vector<int>);
+void read_constraint(ifstream);
+void read_lef_file(ifstream);
 
 struct Dimension
 {
@@ -88,30 +90,27 @@ struct Component
     MACRO lef_info;
 };
 
+//variables
+Constraint constraint{};
+string in_line;
+vector<Point> die_vector;
+unordered_map<string, Component> component_map; //<compName, info>
+unordered_map<string, Dimension>::iterator macroIter;
+unordered_map<string, Component>::iterator compIter;
+//lef info
+int lef_unit;
+float manufacturinggrid;
+unordered_map<string, SITE> site_map;
+unordered_map<string, LAYER> layer_map;
+unordered_map<string, STD_CELL> cell_map; //<macroName, Macro>
+unordered_map<string, MACRO> macro_map; //<macroName, Macro>
+unordered_map<string, STD_CELL>::iterator core_macroIter;
+unordered_map<string, MACRO>::iterator block_macroIter;
 
-
-int main ()
+void read_constraint()
 {
     ifstream txt_file (R"(D:\C++\case01\lefdef\case01.txt)");
-    ifstream lef_file (R"(D:\C++\case01\lefdef\case01.lef)");
-    ifstream def_file (R"(C:\Users\kabazoka\CLionProjects\iccad\2021case3\case3.lef)");
-    ifstream mlist_file (R"(D:\C++\case01\lefdef\case01.mlist)");
     string in_line;
-    vector<Point> die_vector;
-    unordered_map<string, Component> component_map; //<compName, info>
-    unordered_map<string, Dimension>::iterator macroIter;
-    unordered_map<string, Component>::iterator compIter;
-    Constraint constraint{};
-    //lef info
-    int lef_unit;
-    float manufacturinggrid;
-    unordered_map<string, SITE> site_map;
-    unordered_map<string, LAYER> layer_map;
-    unordered_map<string, STD_CELL> cell_map; //<macroName, Macro>
-    unordered_map<string, MACRO> macro_map; //<macroName, Macro>
-    unordered_map<string, STD_CELL>::iterator core_macroIter;
-    unordered_map<string, MACRO>::iterator block_macroIter;
-    //read in txt
     if (txt_file.is_open())
     {
         for (int i = 0; i < 3; ++i)
@@ -135,7 +134,12 @@ int main ()
         }
     }
     txt_file.close();
-    //read in lef
+}
+
+void read_lef_file()
+{
+    ifstream lef_file (R"(D:\C++\case01\lefdef\case01.lef)");
+    string in_line;
     if (lef_file.is_open())
     {
         vector<string> content_array;
@@ -366,17 +370,17 @@ int main ()
         }
     }
     lef_file.close();
-    /*
-    if (def_file.is_open())
-    {
-        while (getline(def_file, in_line))
-        {
-            
-        }
-        
-    }
-    */
-    //read in mlist_file
+}
+
+void read_def_file()
+{
+    ifstream mlist_file (R"(D:\C++\case01\lefdef\case01.mlist)");
+
+}
+
+void read_mlist_file()
+{
+    ifstream mlist_file (R"(D:\C++\case01\lefdef\case01.mlist)");
     if (mlist_file.is_open())
     {
         while ( getline (mlist_file, in_line) )
@@ -448,10 +452,19 @@ int main ()
             }
         }
         mlist_file.close();
-        
+
     }
     else
         cout << "Unable to open mlist_file file";
+}
+
+int main ()
+{
+    read_constraint();
+    read_lef_file();
+    read_def_file();
+    read_mlist_file();
+
     //test output
     //txt
     cout << "\n***START CONSTRAINT OUTPUT***\n" << endl;
