@@ -13,8 +13,6 @@ using namespace std;
 vector<string> splitByPattern(string content, const string& pattern);
 string &trim(string &str);
 int vector_to_int(vector<int>);
-void read_constraint(ifstream);
-void read_lef_file(ifstream);
 
 struct Dimension
 {
@@ -110,7 +108,6 @@ unordered_map<string, MACRO>::iterator block_macroIter;
 void read_constraint()
 {
     ifstream txt_file (R"(D:\C++\case01\lefdef\case01.txt)");
-    string in_line;
     if (txt_file.is_open())
     {
         for (int i = 0; i < 3; ++i)
@@ -139,7 +136,6 @@ void read_constraint()
 void read_lef_file()
 {
     ifstream lef_file (R"(D:\C++\case01\lefdef\case01.lef)");
-    string in_line;
     if (lef_file.is_open())
     {
         vector<string> content_array;
@@ -374,8 +370,54 @@ void read_lef_file()
 
 void read_def_file()
 {
-    ifstream mlist_file (R"(D:\C++\case01\lefdef\case01.mlist)");
+    ifstream def_file (R"(D:\C++\case01\lefdef\case01.mlist)");
+    if (def_file.is_open())
+    {
+        while(getline(def_file, in_line))
+        {
+            if (in_line.find("DIEAREA") != string::npos)
+            {
+                bool first_line = true;
+                bool last_line = true;
+                int cnt = 1;
+                Point die_point{};
+                while (last_line)
+                {
+                    if (!first_line)
+                    {
+                        getline (def_file, in_line);
+                    }
+                    vector<string> content_array = splitByPattern(in_line, " ");
+                    if (first_line)
+                    {
+                        cnt += 1;
+                    } else
+                        cnt = 0;
+                    for (long long unsigned int i = cnt; i < content_array.size(); i += 4)
+                    {
+                        stringstream ss1;
+                        stringstream ss2;
+                        ss1 << content_array[i];
+                        ss1 >> die_point.posX;
+                        ss2 << content_array[i + 1];
+                        ss2 >> die_point.posY;
+                        die_vector.push_back(die_point);
+                    }
+                    first_line = false;
+                    if (in_line.find(';') != string::npos)
+                    {
+                        last_line = false;
+                    }
+                }
+            }
+            if (in_line.find("ROW"))
+            {
 
+            }
+        }
+    }
+    else
+        cout << "Unable to open def file." << endl;
 }
 
 void read_mlist_file()
