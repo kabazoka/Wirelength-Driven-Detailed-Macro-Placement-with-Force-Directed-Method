@@ -63,21 +63,22 @@ struct PIN
     string pin_layer_name;
     LAYER pin_layer;
     vector<Rectangle> rect_vector;
+    string connected_wire;
 };
-struct STD_CELL
+struct STD_CELL_LEF
 {
     Dimension size{};
     SITE macro_site;
     unordered_map<string, PIN> pin_map;
 };
-struct MACRO
+struct MACRO_LEF
 {
     Dimension size{};
     SITE macro_site;
     unordered_map<string, PIN> pin_map;
     unordered_map<string, vector<Rectangle> > obstruction;
 };
-struct Component
+struct STD_CELL
 {
     string macroName;
     string placeType;
@@ -85,25 +86,44 @@ struct Component
     int pointY;
     string orient;
     //lef info
-    MACRO lef_info;
+    Dimension size{};
+    SITE macro_site;
+    unordered_map<string, PIN> pin_map;
+};
+struct MACRO
+{
+    string macroName;
+    string placeType;
+    int pointX{};
+    int pointY{};
+    string orient;
+    //lef info
+    Dimension size{};
+    SITE macro_site;
+    unordered_map<string, PIN> pin_map;
+    unordered_map<string, vector<Rectangle> > obstruction;
 };
 
 //variables
 Constraint constraint{};
 string in_line;
 vector<Point> die_vector;
-unordered_map<string, Component> component_map; //<compName, info>
 unordered_map<string, Dimension>::iterator macroIter;
-unordered_map<string, Component>::iterator compIter;
+unordered_map<string, MACRO>::iterator compIter;
 //lef info
 int lef_unit;
 float manufacturinggrid;
 unordered_map<string, SITE> site_map;
 unordered_map<string, LAYER> layer_map;
-unordered_map<string, STD_CELL> cell_map; //<macroName, Macro>
-unordered_map<string, MACRO> macro_map; //<macroName, Macro>
-unordered_map<string, STD_CELL>::iterator core_macroIter;
-unordered_map<string, MACRO>::iterator block_macroIter;
+unordered_map<string, STD_CELL_LEF> cell_class_map; //<macroName, Macro>
+unordered_map<string, MACRO_LEF> macro_class_map; //<macroName, Macro>
+//def info
+unordered_map<string, MACRO> macro_map; //<compName, info>
+unordered_map<string, STD_CELL> cell_map; //<compName, info>
+unordered_map<string, STD_CELL_LEF>::iterator core_macroIter;
+unordered_map<string, MACRO_LEF>::iterator block_macroIter;
+//verilog info
+vector<string> wire_vector;
 
 void read_constraint()
 {
@@ -201,7 +221,7 @@ void read_lef_file()
                 getline(lef_file, in_line); //end layer
             }
 
-            if(in_line.find("MACRO") != string::npos) //read-in macros
+            if(in_line.find("MACRO_LEF") != string::npos) //read-in macros
             {
                 unordered_map<string, PIN> pin_map;
                 content_array = splitByPattern(in_line, " ");
@@ -211,7 +231,7 @@ void read_lef_file()
                 if(content_array[1] == "CORE") //read in core macro
                 {
                     PIN pin;
-                    STD_CELL core_macro;
+                    STD_CELL_LEF core_macro;
                     Floating_point pointA{}, pointB{};
                     Rectangle rect{};
                     ss1 = {}, ss2 = {};
@@ -270,14 +290,14 @@ void read_lef_file()
                         getline(lef_file, in_line); //end pin
                     }
                     core_macro.pin_map = pin_map;
-                    cell_map.insert(pair<string, STD_CELL>(macro_name, core_macro));
+                    cell_class_map.insert(pair<string, STD_CELL_LEF>(macro_name, core_macro));
                     getline(lef_file, in_line); //get the "END MACRO_NAME" line
                 }
                 else //read-in block macros
                 {
                     ss1 = {}, ss2 = {};
                     Dimension dime{};
-                    MACRO block_macro;
+                    MACRO_LEF block_macro;
                     PIN pin;
                     Floating_point pointA{}, pointB{};
                     getline(lef_file, in_line); //CLASS
@@ -359,7 +379,7 @@ void read_lef_file()
                         }
                         block_macro.obstruction.insert(pair<string, vector<Rectangle> >(layer_str, rec_vec));
                     }
-                    macro_map.insert(pair<string, MACRO>(macro_name, block_macro));
+                    macro_class_map.insert(pair<string, MACRO_LEF>(macro_name, block_macro));
                     getline(lef_file, in_line); //get the "END MACRO_NAME" line
                 }
             }
@@ -410,9 +430,43 @@ void read_def_file()
                     }
                 }
             }
+            /*
             if (in_line.find("ROW"))
             {
 
+            }
+            */
+            if (in_line.find("COMPONENTS") != string::npos)
+            {
+                STD_CELL stdCell;
+                STD_CELL_LEF stdCellLef;
+                vector<string> content_array = splitByPattern(in_line, " ");
+                stringstream ss;
+                int compNum;
+                ss << content_array[1];
+                ss >> compNum;
+                for (int i = 0; i < compNum; i++)
+                {
+                    getline(def_file, in_line);
+                    content_array = splitByPattern(in_line, " ");
+                    string compName = content_array[1];
+                    stdCell.macroName = content_array[2];
+                    stdCellLef = cell_class_map[content_array[2]];
+                    stdCell.size = stdCellLef.size;
+                    stdCell.macro_site = stdCellLef.macro_site;
+                    stdCell.pin_map = stdCellLef.pin_map;
+                    getline(def_file, in_line);
+                    content_array = splitByPattern(in_line, " ");
+                    stdCell.placeType = content_array[1];
+                    stringstream ss1;
+                    stringstream ss2;
+                    ss1 << content_array[3];
+                    ss1 >> stdCell.pointX;
+                    ss2 << content_array[4];
+                    ss2 >> stdCell.pointY;
+                    stdCell.orient = content_array[6];
+                    cell_map.insert(pair<string, STD_CELL>(compName, stdCell));
+                }
             }
         }
     }
@@ -466,7 +520,8 @@ void read_mlist_file()
             //check if readin the COMPONENTS section
             if (in_line.find("COMPONENTS") != string::npos)
             {
-                Component component;
+                MACRO macro;
+                MACRO_LEF macroLef;
                 vector<string> content_array = splitByPattern(in_line, " ");
                 stringstream ss;
                 int compNum;
@@ -477,27 +532,75 @@ void read_mlist_file()
                     getline(mlist_file, in_line);
                     content_array = splitByPattern(in_line, " ");
                     string compName = content_array[1];
-                    component.macroName = content_array[2];
-                    component.lef_info = macro_map[content_array[2]];
+                    macro.macroName = content_array[2];
+                    macroLef = macro_class_map[content_array[2]];
+                    macro.size = macroLef.size;
+                    macro.macro_site = macroLef.macro_site;
+                    macro.pin_map = macroLef.pin_map;
                     getline(mlist_file, in_line);
                     content_array = splitByPattern(in_line, " ");
-                    component.placeType = content_array[1];
+                    macro.placeType = content_array[1];
                     stringstream ss1;
                     stringstream ss2;
                     ss1 << content_array[3];
-                    ss1 >> component.pointX;
+                    ss1 >> macro.pointX;
                     ss2 << content_array[4];
-                    ss2 >> component.pointY;
-                    component.orient = content_array[6];
-                    component_map.insert(pair<string, Component>(compName, component));
+                    ss2 >> macro.pointY;
+                    macro.orient = content_array[6];
+                    macro_map.insert(pair<string, MACRO>(compName, macro));
                 }
             }
         }
         mlist_file.close();
-
     }
     else
         cout << "Unable to open mlist_file file";
+}
+
+void read_verilog_file()
+{
+    ifstream verilog_file (R"(C:\Users\user\OneDrive\桌面\YZU\1102\EDA\ICCAD\Problem_D_case\case01\lefdef)");
+    vector<string> content_array;
+    if (verilog_file.is_open())
+    {
+        while( getline (verilog_file, in_line))
+        {
+            if (in_line.find("wire"))
+            {
+                content_array = splitByPattern(in_line, " ");
+                wire_vector.push_back(content_array[1]);
+            }
+            if(in_line.find("cells"))
+            {
+                getline(verilog_file, in_line);
+                content_array = splitByPattern(in_line, " ");
+                if(cell_class_map.find(content_array[0]))
+                {
+                    STD_CELL cell;
+                    unordered_map<string, PIN> pin_map;
+                    PIN local_pin;
+                    vector<string> con_arr;
+                    string str1, str2;
+
+                    cell = cell_map[content_array[1]];
+                    pin_map = cell.pin_map;
+                    int line_length = content_array.size();
+                    line_length -= 3;
+                    for (int i = 0; i < line_length; ++i)
+                    {
+                        str1 = content_array[3 + i];
+                        con_arr = splitByPattern(str1, "(");
+                        str1 = con_arr[1];
+                        str2 = con_arr[0]; //pin name
+                        local_pin = pin_map[str2[1]];
+                        con_arr = splitByPattern(str1, ")");
+                        str1 = con_arr[0];
+                        local_pin.connected_wire = str1;
+                    }
+                }
+            }
+        }
+    }
 }
 
 int main ()
@@ -506,6 +609,7 @@ int main ()
     read_lef_file();
     read_def_file();
     read_mlist_file();
+    read_verilog_file();
 
     //test output
     //txt
@@ -516,11 +620,11 @@ int main ()
     cout << "\n***END CONSTRAINT***\n" << endl;
     //lef
     cout << "\n***START LEF OUTPUT***\n" << endl;
-    for (core_macroIter = cell_map.begin(); core_macroIter != cell_map.end() ; core_macroIter++)
+    for (core_macroIter = cell_class_map.begin(); core_macroIter != cell_class_map.end() ; core_macroIter++)
     {
         cout << core_macroIter-> first << " / " << core_macroIter -> second.macro_site.site_class << " / " << core_macroIter -> second.size.width << " / " << core_macroIter -> second.size.height << endl;
     }
-    for (block_macroIter = macro_map.begin(); block_macroIter != macro_map.end() ; block_macroIter++)
+    for (block_macroIter = macro_class_map.begin(); block_macroIter != macro_class_map.end() ; block_macroIter++)
     {
         cout << block_macroIter-> first << " / " << block_macroIter -> second.macro_site.site_class << " / " << block_macroIter -> second.size.width << " / " << block_macroIter -> second.size.height<< endl;
     }
@@ -533,11 +637,11 @@ int main ()
         cout << i.posX << ' ' << i.posY << endl;
     }
     cout << "\nCOMPONENTS: " << endl;
-    for (compIter = component_map.begin(); compIter != component_map.end() ; compIter++)
+    for (compIter = macro_map.begin(); compIter != macro_map.end() ; compIter++)
     {
         cout << compIter-> first << " / " << compIter -> second.macroName << " / " << compIter -> second.placeType
              << " / " << compIter -> second.pointX << " / " << compIter -> second.pointY << " / " << compIter -> second.orient
-             << " / " << compIter -> second.lef_info.size.width << " / " << compIter -> second.lef_info.size.height << endl;
+             << " / " << compIter -> second.size.width << " / " << compIter -> second.size.height << endl;
     }
     cout << "\n***END DEF***\n" << endl;
     //end main
