@@ -95,7 +95,7 @@ int main ()
     ifstream txt_file (R"(D:\C++\case01\lefdef\case01.txt)");
     ifstream lef_file (R"(D:\C++\case01\lefdef\case01.lef)");
     ifstream def_file (R"(C:\Users\kabazoka\CLionProjects\iccad\2021case3\case3.lef)");
-    ifstream mlist_file (R"(C:\Users\kabazoka\CLionProjects\iccad\2021case3\case3.def)");
+    ifstream mlist_file (R"(D:\C++\case01\lefdef\case01.mlist)");
     string in_line;
     vector<Point> die_vector;
     unordered_map<string, Component> component_map; //<compName, info>
