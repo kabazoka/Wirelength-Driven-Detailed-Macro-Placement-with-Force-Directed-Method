@@ -78,6 +78,7 @@ struct MACRO_LEF
     unordered_map<string, PIN> pin_map;
     unordered_map<string, vector<Rectangle> > obstruction;
 };
+//Def file and mlist file struct
 struct STD_CELL
 {
     string macroName;
@@ -221,7 +222,7 @@ void read_lef_file()
                 getline(lef_file, in_line); //end layer
             }
 
-            if(in_line.find("MACRO_LEF") != string::npos) //read-in macros
+            if(in_line.find("MACRO") != string::npos) //read-in macros
             {
                 unordered_map<string, PIN> pin_map;
                 content_array = splitByPattern(in_line, " ");
@@ -390,7 +391,7 @@ void read_lef_file()
 
 void read_def_file()
 {
-    ifstream def_file (R"(D:\C++\case01\lefdef\case01.mlist)");
+    ifstream def_file (R"(D:\C++\case01\lefdef\case01.def)");
     if (def_file.is_open())
     {
         while(getline(def_file, in_line))
@@ -430,12 +431,13 @@ void read_def_file()
                     }
                 }
             }
-            /*
+
             if (in_line.find("ROW"))
             {
+                vector<string> content_array = splitByPattern(in_line, " ");
 
             }
-            */
+
             if (in_line.find("COMPONENTS") != string::npos)
             {
                 STD_CELL stdCell;
@@ -473,6 +475,7 @@ void read_def_file()
     else
         cout << "Unable to open def file." << endl;
 }
+
 
 void read_mlist_file()
 {
@@ -557,6 +560,7 @@ void read_mlist_file()
         cout << "Unable to open mlist_file file";
 }
 
+/*
 void read_verilog_file()
 {
     ifstream verilog_file (R"(C:\Users\user\OneDrive\桌面\YZU\1102\EDA\ICCAD\Problem_D_case\case01\lefdef)");
@@ -602,14 +606,14 @@ void read_verilog_file()
         }
     }
 }
-
+*/
 int main ()
 {
     read_constraint();
     read_lef_file();
     read_def_file();
     read_mlist_file();
-    read_verilog_file();
+    //read_verilog_file();
 
     //test output
     //txt
