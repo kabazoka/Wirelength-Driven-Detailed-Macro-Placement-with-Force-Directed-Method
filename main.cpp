@@ -109,7 +109,6 @@ struct MACRO
 Constraint constraint{};
 string in_line;
 vector<Point> die_vector;
-unordered_map<string, Dimension>::iterator macroIter;
 unordered_map<string, MACRO>::iterator compIter;
 //lef info
 int lef_unit;
@@ -121,8 +120,10 @@ unordered_map<string, MACRO_LEF> macro_class_map; //<macroName, Macro>
 //def info
 unordered_map<string, MACRO> macro_map; //<compName, info>
 unordered_map<string, STD_CELL> cell_map; //<compName, info>
-unordered_map<string, STD_CELL_LEF>::iterator core_macroIter;
-unordered_map<string, MACRO_LEF>::iterator block_macroIter;
+unordered_map<string, STD_CELL_LEF>::iterator core_class_iter;
+unordered_map<string, MACRO_LEF>::iterator block_class_iter;
+unordered_map<string, STD_CELL>::iterator cellIter;
+unordered_map<string, MACRO>::iterator macroIter;
 //verilog info
 vector<string> wire_vector;
 
@@ -560,25 +561,21 @@ void read_mlist_file()
         cout << "Unable to open mlist_file file";
 }
 
-/*
+
 void read_verilog_file()
 {
-    ifstream verilog_file (R"(C:\Users\user\OneDrive\桌面\YZU\1102\EDA\ICCAD\Problem_D_case\case01\lefdef)");
+    ifstream verilog_file (R"(D:\C++\case01\lefdef\case01.v)");
     vector<string> content_array;
     if (verilog_file.is_open())
     {
         while( getline (verilog_file, in_line))
         {
-            if (in_line.find("wire"))
-            {
-                content_array = splitByPattern(in_line, " ");
-                wire_vector.push_back(content_array[1]);
-            }
-            if(in_line.find("cells"))
+            if(in_line.find("cells") != string::npos)
             {
                 getline(verilog_file, in_line);
                 content_array = splitByPattern(in_line, " ");
-                if(cell_class_map.find(content_array[0]))
+                auto item = cell_class_map.find(content_array[0]);
+                if(item != cell_class_map.end()) // it's a cell
                 {
                     STD_CELL cell;
                     unordered_map<string, PIN> pin_map;
@@ -602,18 +599,42 @@ void read_verilog_file()
                         local_pin.connected_wire = str1;
                     }
                 }
+                else // it's a macro
+                {
+                    MACRO macro;
+                    unordered_map<string, PIN> pin_map;
+                    PIN local_pin;
+                    vector<string> con_arr;
+                    string str1, str2;
+
+                    macro = macro_map[content_array[1]];
+                    pin_map = macro.pin_map;
+                    int line_length = content_array.size();
+                    line_length -= 3;
+                    for (int i = 0; i < line_length; ++i)
+                    {
+                        str1 = content_array[3 + i];
+                        con_arr = splitByPattern(str1, "(");
+                        str1 = con_arr[1];
+                        str2 = con_arr[0]; //pin name
+                        local_pin = pin_map[str2[1]];
+                        con_arr = splitByPattern(str1, ")");
+                        str1 = con_arr[0];
+                        local_pin.connected_wire = str1;
+                    }
+                }
             }
         }
     }
 }
-*/
+
 int main ()
 {
     read_constraint();
     read_lef_file();
     read_def_file();
     read_mlist_file();
-    //read_verilog_file();
+    read_verilog_file();
 
     //test output
     //txt
@@ -624,17 +645,36 @@ int main ()
     cout << "\n***END CONSTRAINT***\n" << endl;
     //lef
     cout << "\n***START LEF OUTPUT***\n" << endl;
-    for (core_macroIter = cell_class_map.begin(); core_macroIter != cell_class_map.end() ; core_macroIter++)
+    for (core_class_iter = cell_class_map.begin(); core_class_iter != cell_class_map.end() ; core_class_iter++)
     {
-        cout << core_macroIter-> first << " / " << core_macroIter -> second.macro_site.site_class << " / " << core_macroIter -> second.size.width << " / " << core_macroIter -> second.size.height << endl;
+        cout << core_class_iter-> first << " / " << core_class_iter -> second.macro_site.site_class << " / " << core_class_iter -> second.size.width << " / " << core_class_iter -> second.size.height << endl;
     }
-    for (block_macroIter = macro_class_map.begin(); block_macroIter != macro_class_map.end() ; block_macroIter++)
+    for (block_class_iter = macro_class_map.begin(); block_class_iter != macro_class_map.end() ; block_class_iter++)
     {
-        cout << block_macroIter-> first << " / " << block_macroIter -> second.macro_site.site_class << " / " << block_macroIter -> second.size.width << " / " << block_macroIter -> second.size.height<< endl;
+        cout << block_class_iter-> first << " / " << block_class_iter -> second.macro_site.site_class << " / " << block_class_iter -> second.size.width << " / " << block_class_iter -> second.size.height<< endl;
     }
     cout << "\n***END LEF***\n" << endl;
-    //def
+
+    /*
+     //def
     cout << "\n***START DEF OUTPUT***\n" << endl;
+    cout << "DIE POINTS: " << endl;
+    for (auto & i : die_vector)
+    {
+        cout << i.posX << ' ' << i.posY << endl;
+    }
+    cout << "\nCOMPONENTS: " << endl;
+    for (cellIter = cell_map.begin(); cellIter != cell_map.end() ; cellIter++)
+    {
+        cout << cellIter-> first << " / " << cellIter -> second.macroName << " / " << cellIter -> second.placeType
+             << " / " << cellIter -> second.pointX << " / " << cellIter -> second.pointY << " / " << cellIter -> second.orient
+             << " / " << cellIter -> second.size.width << " / " << cellIter -> second.size.height << endl;
+    }
+    cout << "\n***END DEF***\n" << endl;
+     */
+
+    //mlist
+    cout << "\n***START MLIST OUTPUT***\n" << endl;
     cout << "DIE POINTS: " << endl;
     for (auto & i : die_vector)
     {
@@ -647,7 +687,7 @@ int main ()
              << " / " << compIter -> second.pointX << " / " << compIter -> second.pointY << " / " << compIter -> second.orient
              << " / " << compIter -> second.size.width << " / " << compIter -> second.size.height << endl;
     }
-    cout << "\n***END DEF***\n" << endl;
+    cout << "\n***END MLIST***\n" << endl;
     //end main
     return 0;
 }
