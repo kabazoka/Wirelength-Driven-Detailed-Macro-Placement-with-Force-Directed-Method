@@ -104,6 +104,12 @@ struct MACRO
     unordered_map<string, PIN> pin_map;
     unordered_map<string, vector<Rectangle> > obstruction;
 };
+//ver
+struct BASIC_PIN
+{
+    string pin_name;
+    string macro_name;
+};
 
 //variables
 Constraint constraint{};
@@ -125,7 +131,8 @@ unordered_map<string, MACRO_LEF>::iterator block_class_iter;
 unordered_map<string, STD_CELL>::iterator cellIter;
 unordered_map<string, MACRO>::iterator macroIter;
 //verilog info
-unordered_map<string, vector<string>> netlist;
+unordered_map<string, vector<BASIC_PIN>> netlistMap; //<wire name, pin/macro>
+unordered_map<string, vector<BASIC_PIN>>::iterator netIter;
 
 void read_constraint()
 {
@@ -578,14 +585,16 @@ void read_verilog_file()
                     auto item = cell_class_map.find(content_array[0]);
                     if (item != cell_class_map.end()) // cell
                     {
-                        STD_CELL *cell;
-                        unordered_map<string, PIN> *pin_map;
+                        STD_CELL cell;
+                        unordered_map<string, PIN> pin_map;
                         PIN local_pin;
-                        vector<string> con_arr, nodes_vec;
+                        vector<string> con_arr;
                         string str1, str2, wire_name;
+                        BASIC_PIN basicPin;
+                        vector<BASIC_PIN> basicPinVec;
 
-                        *cell = cell_map[content_array[1]];
-                        *pin_map = cell->pin_map;
+                        cell = cell_map[content_array[1]];
+                        pin_map = cell.pin_map;
                         int line_length = content_array.size();
                         line_length -= 4;
                         for (int i = 0; i < line_length; ++i) {
@@ -594,15 +603,18 @@ void read_verilog_file()
                             str1 = con_arr[1]; //wire name
                             str2 = con_arr[0]; //pin name
                             str2.erase(0,1);
-                            local_pin = *pin_map[str2];
+                            local_pin = pin_map[str2];
                             con_arr = splitByPattern(str1, ")");
                             wire_name = con_arr[0];
                             local_pin.connected_wire = wire_name;
-                            *pin_map[str2] = local_pin;
+                            pin_map[str2] = local_pin;
                             //
-                            nodes_vec = netlist[wire_name];
-                            nodes_vec.push_back()
-                            netlist.insert(pair<string, vector<string>>(str1, nodes_vec));
+                            basicPinVec = netlistMap[wire_name];
+                            netlistMap.erase(wire_name);
+                            basicPin.macro_name = cell.macroName;
+                            basicPin.pin_name = str2;
+                            basicPinVec.push_back(basicPin);
+                            netlistMap.insert(pair<string, vector<BASIC_PIN>>(wire_name, basicPinVec));
                         }
                         cell.pin_map = pin_map;
                         cell_map[content_array[1]] = cell;
@@ -613,7 +625,9 @@ void read_verilog_file()
                         unordered_map<string, PIN> pin_map;
                         PIN local_pin;
                         vector<string> con_arr;
-                        string str1, str2;
+                        string str1, str2, wire_name;
+                        BASIC_PIN basicPin;
+                        vector<BASIC_PIN> basicPinVec;
 
                         macro = macro_map[content_array[1]];
                         pin_map = macro.pin_map;
@@ -627,9 +641,16 @@ void read_verilog_file()
                             str2.erase(0,1);
                             local_pin = pin_map[str2];
                             con_arr = splitByPattern(str1, ")");
-                            str1 = con_arr[0];
-                            local_pin.connected_wire = str1;
+                            wire_name = con_arr[0];
+                            local_pin.connected_wire = wire_name;
                             pin_map[str2] = local_pin;
+                            //
+                            basicPinVec = netlistMap[wire_name];
+                            netlistMap.erase(wire_name);
+                            basicPin.macro_name = macro.macroName;
+                            basicPin.pin_name = str2;
+                            basicPinVec.push_back(basicPin);
+                            netlistMap.insert(pair<string, vector<BASIC_PIN>>(wire_name, basicPinVec));
                         }
                         macro.pin_map = pin_map;
                         macro_map[content_array[1]] = macro;
@@ -700,6 +721,14 @@ int main ()
              << " / " << compIter -> second.size.width << " / " << compIter -> second.size.height << endl;
     }
     cout << "\n***END MLIST***\n" << endl;
+
+    //verilog
+    /*
+    for (netIter = netlistMap.begin(); netIter != netlistMap.end(); netIter++)
+    {
+        cout << netIter->first << endl;
+    }
+     */
     //end main
     return 0;
 }
