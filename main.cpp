@@ -125,7 +125,7 @@ unordered_map<string, MACRO_LEF>::iterator block_class_iter;
 unordered_map<string, STD_CELL>::iterator cellIter;
 unordered_map<string, MACRO>::iterator macroIter;
 //verilog info
-vector<string> wire_vector;
+unordered_map<string, vector<string>> netlist;
 
 void read_constraint()
 {
@@ -436,7 +436,6 @@ void read_def_file()
             if (in_line.find("ROW"))
             {
                 vector<string> content_array = splitByPattern(in_line, " ");
-
             }
 
             if (in_line.find("COMPONENTS") != string::npos)
@@ -476,7 +475,6 @@ void read_def_file()
     else
         cout << "Unable to open def file." << endl;
 }
-
 
 void read_mlist_file()
 {
@@ -552,6 +550,7 @@ void read_mlist_file()
                     ss2 >> macro.pointY;
                     macro.orient = content_array[6];
                     macro_map.insert(pair<string, MACRO>(compName, macro));
+                    cell_class_map.erase(macro.macroName);
                 }
             }
         }
@@ -560,7 +559,6 @@ void read_mlist_file()
     else
         cout << "Unable to open mlist_file file";
 }
-
 
 void read_verilog_file()
 {
@@ -572,55 +570,69 @@ void read_verilog_file()
         {
             if(in_line.find("cells") != string::npos)
             {
-                getline(verilog_file, in_line);
-                content_array = splitByPattern(in_line, " ");
-                auto item = cell_class_map.find(content_array[0]);
-                if(item != cell_class_map.end()) // it's a cell
+                while(getline (verilog_file, in_line))
                 {
-                    STD_CELL cell;
-                    unordered_map<string, PIN> pin_map;
-                    PIN local_pin;
-                    vector<string> con_arr;
-                    string str1, str2;
-
-                    cell = cell_map[content_array[1]];
-                    pin_map = cell.pin_map;
-                    int line_length = content_array.size();
-                    line_length -= 3;
-                    for (int i = 0; i < line_length; ++i)
+                    if (in_line.empty())
+                        break;
+                    content_array = splitByPattern(in_line, " ");
+                    auto item = cell_class_map.find(content_array[0]);
+                    if (item != cell_class_map.end()) // cell
                     {
-                        str1 = content_array[3 + i];
-                        con_arr = splitByPattern(str1, "(");
-                        str1 = con_arr[1];
-                        str2 = con_arr[0]; //pin name
-                        local_pin = pin_map[str2[1]];
-                        con_arr = splitByPattern(str1, ")");
-                        str1 = con_arr[0];
-                        local_pin.connected_wire = str1;
+                        STD_CELL *cell;
+                        unordered_map<string, PIN> *pin_map;
+                        PIN local_pin;
+                        vector<string> con_arr, nodes_vec;
+                        string str1, str2, wire_name;
+
+                        *cell = cell_map[content_array[1]];
+                        *pin_map = cell->pin_map;
+                        int line_length = content_array.size();
+                        line_length -= 4;
+                        for (int i = 0; i < line_length; ++i) {
+                            str1 = content_array[3 + i];
+                            con_arr = splitByPattern(str1, "(");
+                            str1 = con_arr[1]; //wire name
+                            str2 = con_arr[0]; //pin name
+                            str2.erase(0,1);
+                            local_pin = *pin_map[str2];
+                            con_arr = splitByPattern(str1, ")");
+                            wire_name = con_arr[0];
+                            local_pin.connected_wire = wire_name;
+                            *pin_map[str2] = local_pin;
+                            //
+                            nodes_vec = netlist[wire_name];
+                            nodes_vec.push_back()
+                            netlist.insert(pair<string, vector<string>>(str1, nodes_vec));
+                        }
+                        cell.pin_map = pin_map;
+                        cell_map[content_array[1]] = cell;
                     }
-                }
-                else // it's a macro
-                {
-                    MACRO macro;
-                    unordered_map<string, PIN> pin_map;
-                    PIN local_pin;
-                    vector<string> con_arr;
-                    string str1, str2;
-
-                    macro = macro_map[content_array[1]];
-                    pin_map = macro.pin_map;
-                    int line_length = content_array.size();
-                    line_length -= 3;
-                    for (int i = 0; i < line_length; ++i)
+                    else // macro
                     {
-                        str1 = content_array[3 + i];
-                        con_arr = splitByPattern(str1, "(");
-                        str1 = con_arr[1];
-                        str2 = con_arr[0]; //pin name
-                        local_pin = pin_map[str2[1]];
-                        con_arr = splitByPattern(str1, ")");
-                        str1 = con_arr[0];
-                        local_pin.connected_wire = str1;
+                        MACRO macro;
+                        unordered_map<string, PIN> pin_map;
+                        PIN local_pin;
+                        vector<string> con_arr;
+                        string str1, str2;
+
+                        macro = macro_map[content_array[1]];
+                        pin_map = macro.pin_map;
+                        int line_length = content_array.size();
+                        line_length -= 4;
+                        for (int i = 0; i < line_length; ++i) {
+                            str1 = content_array[3 + i];
+                            con_arr = splitByPattern(str1, "(");
+                            str1 = con_arr[1];
+                            str2 = con_arr[0]; //pin name
+                            str2.erase(0,1);
+                            local_pin = pin_map[str2];
+                            con_arr = splitByPattern(str1, ")");
+                            str1 = con_arr[0];
+                            local_pin.connected_wire = str1;
+                            pin_map[str2] = local_pin;
+                        }
+                        macro.pin_map = pin_map;
+                        macro_map[content_array[1]] = macro;
                     }
                 }
             }
