@@ -131,8 +131,13 @@ unordered_map<string, MACRO_LEF>::iterator block_class_iter;
 unordered_map<string, STD_CELL>::iterator cellIter;
 unordered_map<string, MACRO>::iterator macroIter;
 //verilog info
-unordered_map<string, vector<BASIC_PIN>> netlistMap; //<wire name, pin/macro>
+unordered_map<string, vector<BASIC_PIN>> netlistMap; //<wire name, vector<pin/macro>>
 unordered_map<string, vector<BASIC_PIN>>::iterator netIter;
+
+unordered_map<string, PIN>::iterator pin_map_iter;
+
+//functions
+float getWirelength(Point, Point);
 
 void read_constraint()
 {
@@ -158,6 +163,7 @@ void read_constraint()
                 ss >> constraint.macro_halo;
             }
         }
+        cout << "Constraint reading completed." << endl;
     }
     txt_file.close();
 }
@@ -393,6 +399,7 @@ void read_lef_file()
                 }
             }
         }
+        cout << "LEF file reading completed." << endl;
     }
     lef_file.close();
 }
@@ -478,6 +485,7 @@ void read_def_file()
                 }
             }
         }
+        cout << "DEF file reading completed." << endl;
     }
     else
         cout << "Unable to open def file." << endl;
@@ -561,6 +569,7 @@ void read_mlist_file()
                 }
             }
         }
+        cout << "mlist file reading completed." << endl;
         mlist_file.close();
     }
     else
@@ -658,6 +667,54 @@ void read_verilog_file()
                 }
             }
         }
+        cout << "Verilog file reading completed." << endl;
+    }
+}
+
+void calculate()
+{
+    for (compIter = macro_map.begin(); compIter != macro_map.end() ; compIter++)
+    {
+        MACRO sourceMacro, targetMacro;
+        STD_CELL stdCell;
+        PIN pin;
+        float sumOfLength = 0;
+
+        sourceMacro = compIter -> second;
+        for (pin_map_iter = sourceMacro.pin_map.begin(); pin_map_iter != sourceMacro.pin_map.end() ; pin_map_iter++)
+        {
+            string wireName;
+            BASIC_PIN basicPin;
+            vector<BASIC_PIN> pinVec;
+            Point sourceP{}, targetP{};
+
+            pin = pin_map_iter->second;
+            wireName = pin.connected_wire;
+            pinVec = netlistMap[wireName];
+            for (auto & i : pinVec)
+            {
+                basicPin = i;
+                auto item = cell_map.find(basicPin.macro_name);
+                if (item != cell_map.end())
+                {
+                    stdCell = cell_map[basicPin.macro_name];
+                    sourceP.posX = sourceMacro.pointX;
+                    sourceP.posY = sourceMacro.pointY;
+                    targetP.posX = stdCell.pointX;
+                    targetP.posY = stdCell.pointY;
+                    sumOfLength += getWirelength(sourceP, targetP);
+                }
+                else
+                {
+                    targetMacro = macro_map[basicPin.macro_name];
+                    sourceP.posX = sourceMacro.pointX;
+                    sourceP.posY = sourceMacro.pointY;
+                    targetP.posX = targetMacro.pointX;
+                    targetP.posY = targetMacro.pointY;
+                    sumOfLength += getWirelength(sourceP, targetP);
+                }
+            }
+        }
     }
 }
 
@@ -669,6 +726,7 @@ int main ()
     read_mlist_file();
     read_verilog_file();
 
+    calculate();
     //test output
     //txt
     cout << "\n***START CONSTRAINT OUTPUT***\n" << endl;
@@ -733,6 +791,11 @@ int main ()
     return 0;
 }
 
+float getWirelength(Point A, Point B)
+{
+    float distance = abs(A.posX - B.posX) + abs(A.posY - B.posY);
+    return distance;
+}
 
 //splitting string by pattern
 vector<string> splitByPattern(string content, const string& pattern)
