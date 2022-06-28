@@ -16,18 +16,18 @@ int vector_to_int(vector<int>);
 
 struct Dimension
 {
-    float width;
-    float height;
+    double width;
+    double height;
 };
 struct Point
 {
-    int posX;
-    int posY;
+    double posX;
+    double posY;
 };
 struct Floating_point
 {
-    float posX;
-    float posY;
+    double posX;
+    double posY;
 };
 struct Rectangle
 {
@@ -44,7 +44,7 @@ struct Constraint
 };
 
 //lef file struct
-struct SITE 
+struct SITE
 {
     string site_name;
     string site_class;
@@ -54,16 +54,17 @@ struct LAYER
 {
     string layer_type;
     bool direction{};//0 = vertical, 1 = horizontal
-    float pitch{};
-    float width{};
+    double pitch{};
+    double width{};
 };
 struct PIN
 {
     bool pin_direction{};//0 = input;
-    string pin_layer_name;
+    string pin_name;
     LAYER pin_layer;
     vector<Rectangle> rect_vector;
     string connected_wire;
+    Floating_point relativePoint{};
 };
 struct STD_CELL_LEF
 {
@@ -83,8 +84,8 @@ struct STD_CELL
 {
     string macroName;
     string placeType;
-    int pointX;
-    int pointY;
+    float posX;
+    float posY;
     string orient;
     //lef info
     Dimension size{};
@@ -95,8 +96,8 @@ struct MACRO
 {
     string macroName;
     string placeType;
-    int pointX{};
-    int pointY{};
+    float posX{};
+    float posY{};
     string orient;
     //lef info
     Dimension size{};
@@ -105,7 +106,7 @@ struct MACRO
     unordered_map<string, vector<Rectangle> > obstruction;
 };
 //ver
-struct BASIC_PIN
+struct PIN_INDEX
 {
     string pin_name;
     string macro_name;
@@ -118,7 +119,7 @@ vector<Point> die_vector;
 unordered_map<string, MACRO>::iterator compIter;
 //lef info
 int lef_unit;
-float manufacturinggrid;
+double manufacturinggrid;
 unordered_map<string, SITE> site_map;
 unordered_map<string, LAYER> layer_map;
 unordered_map<string, STD_CELL_LEF> cell_class_map; //<macroName, Macro>
@@ -129,15 +130,16 @@ unordered_map<string, STD_CELL> cell_map; //<compName, info>
 unordered_map<string, STD_CELL_LEF>::iterator core_class_iter;
 unordered_map<string, MACRO_LEF>::iterator block_class_iter;
 unordered_map<string, STD_CELL>::iterator cellIter;
-unordered_map<string, MACRO>::iterator macroIter;
+unordered_map<string, MACRO>::iterator macroIter1;
+unordered_map<string, MACRO>::iterator macroIter2;
 //verilog info
-unordered_map<string, vector<BASIC_PIN>> netlistMap; //<wire name, vector<pin/macro>>
-unordered_map<string, vector<BASIC_PIN>>::iterator netIter;
+unordered_map<string, vector<PIN_INDEX>> netlistMap; //<wire name, vector<pin/macro>>
+unordered_map<string, vector<PIN_INDEX>>::iterator netIter;
 
 unordered_map<string, PIN>::iterator pin_map_iter;
 
 //functions
-float getWirelength(Point, Point);
+double getWirelength(Point, Point);
 
 void read_constraint()
 {
@@ -269,7 +271,8 @@ void read_lef_file()
                         if (in_line.find("END") != string::npos)
                             break;
                         content_array = splitByPattern(in_line, " ");
-                        string pin_name = content_array[1];
+                        string pinName = content_array[1];
+                        pin.pin_name = pinName;
                         content_array = splitByPattern(in_line, " ");
                         getline(lef_file, in_line); //DIRECTION
                         pin.pin_direction = !(content_array[1] == "INPUT");
@@ -279,7 +282,6 @@ void read_lef_file()
                         getline(lef_file, in_line); //LAYER
                         content_array = splitByPattern(in_line, " ");
                         string layer_str = content_array[1];
-                        pin.pin_layer_name = layer_str;
                         pin.pin_layer = layer_map[layer_str];
                         while(getline(lef_file, in_line)) //RECT loop
                         {
@@ -299,9 +301,23 @@ void read_lef_file()
                             rect.a = pointA;
                             rect.b = pointB;
                             rec_vec.push_back(rect);
+                            //cal
+                            if (pin.relativePoint.posX == 0 && pin.relativePoint.posY == 0)
+                            {
+                                pin.relativePoint.posX = (pointA.posX + pointB.posX) / 2;
+                                pin.relativePoint.posY = (pointA.posY + pointB.posY) / 2;
+                            }
+                            else
+                            {
+                                double tempX, tempY;
+                                tempX = (pointA.posX + pointB.posX) / 2;
+                                tempY = (pointA.posY + pointB.posY) / 2;
+                                pin.relativePoint.posX = (tempX + pin.relativePoint.posX) / 2;
+                                pin.relativePoint.posY = (tempY + pin.relativePoint.posY) / 2;
+                            }
                         }
                         pin.rect_vector = rec_vec;
-                        pin_map.insert(pair<string, PIN>(pin_name, pin));
+                        pin_map.insert(pair<string, PIN>(pinName, pin));
                         getline(lef_file, in_line); //end pin
                     }
                     core_macro.pin_map = pin_map;
@@ -332,7 +348,8 @@ void read_lef_file()
                         Rectangle rect{};
                         vector<Rectangle> rec_vec;
                         content_array = splitByPattern(in_line, " ");
-                        string pin_name = content_array[1];
+                        string pinName = content_array[1];
+                        pin.pin_name = pinName;
                         getline(lef_file, in_line); //DIRECTION
                         content_array = splitByPattern(in_line, " ");
                         if(content_array[1] == "INPUT")
@@ -345,22 +362,42 @@ void read_lef_file()
                         content_array = splitByPattern(in_line, " ");
                         string layer_str = content_array[1];
                         pin.pin_layer = layer_map[layer_str];
-                        getline(lef_file, in_line); //RECT
-                        ss1 << content_array[1];
-                        ss2 << content_array[2];
-                        ss1 >> pointA.posX;
-                        ss2 >> pointA.posY;
-                        ss1 << content_array[3];
-                        ss2 << content_array[4];
-                        ss1 >> pointB.posX;
-                        ss2 >> pointB.posY;
-                        rect.a = pointA;
-                        rect.b = pointB;
-                        rec_vec.push_back(rect);
+                        while(getline(lef_file, in_line)) //RECT loop
+                        {
+                            ss1 = {}, ss2 = {};
+                            if (in_line.find("END") != string::npos)
+                                break;//end rect loop
+                            content_array = splitByPattern(in_line, " ");
+                            ss1 << content_array[1];
+                            ss2 << content_array[2];
+                            ss1 >> pointA.posX;
+                            ss2 >> pointA.posY;
+                            ss1 = {}, ss2 = {};
+                            ss1 << content_array[3];
+                            ss2 << content_array[4];
+                            ss1 >> pointB.posX;
+                            ss2 >> pointB.posY;
+                            rect.a = pointA;
+                            rect.b = pointB;
+                            rec_vec.push_back(rect);
+                            //cal
+                            if (pin.relativePoint.posX == 0 && pin.relativePoint.posY == 0) {
+                                pin.relativePoint.posX = (pointA.posX + pointB.posX) / 2;
+                                pin.relativePoint.posY = (pointA.posY + pointB.posY) / 2;
+                            } else {
+                                double tempX, tempY;
+                                tempX = (pointA.posX + pointB.posX) / 2;
+                                tempY = (pointA.posY + pointB.posY) / 2;
+                                pin.relativePoint.posX = (tempX + pin.relativePoint.posX) / 2;
+                                pin.relativePoint.posY = (tempY + pin.relativePoint.posY) / 2;
+                            }
+                        }
+                        pin.rect_vector = rec_vec;
+                        pin_map.insert(pair<string, PIN>(pinName, pin));
                         getline(lef_file, in_line); //END
                         getline(lef_file, in_line); //END PIN
-                        getline(lef_file, in_line); //NEW LINE
                     }
+                    block_macro.pin_map = pin_map;
                     if(in_line.find("OBS") != string::npos)
                     {
                         Rectangle rect{};
@@ -477,9 +514,9 @@ void read_def_file()
                     stringstream ss1;
                     stringstream ss2;
                     ss1 << content_array[3];
-                    ss1 >> stdCell.pointX;
+                    ss1 >> stdCell.posX;
                     ss2 << content_array[4];
-                    ss2 >> stdCell.pointY;
+                    ss2 >> stdCell.posY;
                     stdCell.orient = content_array[6];
                     cell_map.insert(pair<string, STD_CELL>(compName, stdCell));
                 }
@@ -560,9 +597,9 @@ void read_mlist_file()
                     stringstream ss1;
                     stringstream ss2;
                     ss1 << content_array[3];
-                    ss1 >> macro.pointX;
+                    ss1 >> macro.posX;
                     ss2 << content_array[4];
-                    ss2 >> macro.pointY;
+                    ss2 >> macro.posY;
                     macro.orient = content_array[6];
                     macro_map.insert(pair<string, MACRO>(compName, macro));
                     cell_class_map.erase(macro.macroName);
@@ -599,8 +636,8 @@ void read_verilog_file()
                         PIN local_pin;
                         vector<string> con_arr;
                         string str1, str2, wire_name;
-                        BASIC_PIN basicPin;
-                        vector<BASIC_PIN> basicPinVec;
+                        PIN_INDEX pinIndex;
+                        vector<PIN_INDEX> basicPinVec;
 
                         cell = cell_map[content_array[1]];
                         pin_map = cell.pin_map;
@@ -620,10 +657,10 @@ void read_verilog_file()
                             //
                             basicPinVec = netlistMap[wire_name];
                             netlistMap.erase(wire_name);
-                            basicPin.macro_name = cell.macroName;
-                            basicPin.pin_name = str2;
-                            basicPinVec.push_back(basicPin);
-                            netlistMap.insert(pair<string, vector<BASIC_PIN>>(wire_name, basicPinVec));
+                            pinIndex.macro_name = cell.macroName;
+                            pinIndex.pin_name = str2;
+                            basicPinVec.push_back(pinIndex);
+                            netlistMap.insert(pair<string, vector<PIN_INDEX>>(wire_name, basicPinVec));
                         }
                         cell.pin_map = pin_map;
                         cell_map[content_array[1]] = cell;
@@ -635,8 +672,8 @@ void read_verilog_file()
                         PIN local_pin;
                         vector<string> con_arr;
                         string str1, str2, wire_name;
-                        BASIC_PIN basicPin;
-                        vector<BASIC_PIN> basicPinVec;
+                        PIN_INDEX pinIndex;
+                        vector<PIN_INDEX> basicPinVec;
 
                         macro = macro_map[content_array[1]];
                         pin_map = macro.pin_map;
@@ -656,10 +693,10 @@ void read_verilog_file()
                             //
                             basicPinVec = netlistMap[wire_name];
                             netlistMap.erase(wire_name);
-                            basicPin.macro_name = macro.macroName;
-                            basicPin.pin_name = str2;
-                            basicPinVec.push_back(basicPin);
-                            netlistMap.insert(pair<string, vector<BASIC_PIN>>(wire_name, basicPinVec));
+                            pinIndex.macro_name = macro.macroName;
+                            pinIndex.pin_name = str2;
+                            basicPinVec.push_back(pinIndex);
+                            netlistMap.insert(pair<string, vector<PIN_INDEX>>(wire_name, basicPinVec));
                         }
                         macro.pin_map = pin_map;
                         macro_map[content_array[1]] = macro;
@@ -673,48 +710,56 @@ void read_verilog_file()
 
 void calculate()
 {
-    for (compIter = macro_map.begin(); compIter != macro_map.end() ; compIter++)
+    for (macroIter1 = macro_map.begin(); macroIter1 != macro_map.end() ; macroIter1++) //loop of all macros
     {
-        MACRO sourceMacro, targetMacro;
-        STD_CELL stdCell;
-        PIN pin;
-        float sumOfLength = 0;
-
-        sourceMacro = compIter -> second;
-        for (pin_map_iter = sourceMacro.pin_map.begin(); pin_map_iter != sourceMacro.pin_map.end() ; pin_map_iter++)
+        double sumOfLength = 0;
+        MACRO sourceMacro = macroIter1 -> second;
+        for (pin_map_iter = sourceMacro.pin_map.begin(); pin_map_iter != sourceMacro.pin_map.end() ; pin_map_iter++) //loop of all pins in a macro
         {
-            string wireName;
-            BASIC_PIN basicPin;
-            vector<BASIC_PIN> pinVec;
             Point sourceP{}, targetP{};
-
-            pin = pin_map_iter->second;
-            wireName = pin.connected_wire;
-            pinVec = netlistMap[wireName];
-            for (auto & i : pinVec)
+            PIN sourcePin = pin_map_iter->second;
+            string wireName = sourcePin.connected_wire; //get the pin's connected wire
+            vector<PIN_INDEX> pinVec = netlistMap[wireName];
+            for (auto & i : pinVec) //loop of all of the pins that the wire connects
             {
-                basicPin = i;
-                auto item = cell_map.find(basicPin.macro_name);
+                double tmpX{}, tmpY{};
+                PIN_INDEX pinIndex = i;
+                auto item = cell_map.find(pinIndex.macro_name);
                 if (item != cell_map.end())
                 {
-                    stdCell = cell_map[basicPin.macro_name];
-                    sourceP.posX = sourceMacro.pointX;
-                    sourceP.posY = sourceMacro.pointY;
-                    targetP.posX = stdCell.pointX;
-                    targetP.posY = stdCell.pointY;
+                    tmpX = (sourceMacro.posX) / 2000;
+                    tmpY = (sourceMacro.posY) / 2000;
+                    sourceP.posX = tmpX + sourcePin.relativePoint.posX;
+                    sourceP.posY = tmpY + sourcePin.relativePoint.posY;
+                    cellIter = cell_map.find(pinIndex.macro_name); //find the target macro
+                    STD_CELL targetCell = cellIter->second;
+                    unordered_map<string, PIN> targetPinMap = targetCell.pin_map; //get the target pin map
+                    PIN targetPin = targetPinMap[pinIndex.pin_name]; //get the pin from the pin map with index
+                    tmpX = (targetCell.posX) / 2000;
+                    tmpY = (targetCell.posY) / 2000;
+                    targetP.posX = tmpX + targetPin.relativePoint.posX;
+                    targetP.posY = tmpY + targetPin.relativePoint.posY;
                     sumOfLength += getWirelength(sourceP, targetP);
                 }
                 else
                 {
-                    targetMacro = macro_map[basicPin.macro_name];
-                    sourceP.posX = sourceMacro.pointX;
-                    sourceP.posY = sourceMacro.pointY;
-                    targetP.posX = targetMacro.pointX;
-                    targetP.posY = targetMacro.pointY;
+                    tmpX = (sourceMacro.posX) / 2000;
+                    tmpY = (sourceMacro.posY) / 2000;
+                    sourceP.posX = tmpX + sourcePin.relativePoint.posX;
+                    sourceP.posY = tmpY + sourcePin.relativePoint.posY;
+                    macroIter2 = macro_map.find(pinIndex.macro_name); //find the target macro
+                    MACRO targetMacro = macroIter2->second;
+                    unordered_map<string, PIN> targetPinMap = targetMacro.pin_map; //get the target pin map
+                    PIN targetPin = targetPinMap[pinIndex.pin_name]; //get the pin from the pin map with index
+                    tmpX = (targetMacro.posX) / 2000;
+                    tmpY = (targetMacro.posY) / 2000;
+                    targetP.posX = tmpX + targetPin.relativePoint.posX;
+                    targetP.posY = tmpY + targetPin.relativePoint.posY;
                     sumOfLength += getWirelength(sourceP, targetP);
                 }
             }
         }
+        cout << sourceMacro.macroName << " wire length: " << sumOfLength << endl;
     }
 }
 
@@ -726,7 +771,6 @@ int main ()
     read_mlist_file();
     read_verilog_file();
 
-    calculate();
     //test output
     //txt
     cout << "\n***START CONSTRAINT OUTPUT***\n" << endl;
@@ -735,16 +779,19 @@ int main ()
     cout << "macro_halo: " << constraint.macro_halo << endl;
     cout << "\n***END CONSTRAINT***\n" << endl;
     //lef
+    /*
     cout << "\n***START LEF OUTPUT***\n" << endl;
     for (core_class_iter = cell_class_map.begin(); core_class_iter != cell_class_map.end() ; core_class_iter++)
     {
         cout << core_class_iter-> first << " / " << core_class_iter -> second.macro_site.site_class << " / " << core_class_iter -> second.size.width << " / " << core_class_iter -> second.size.height << endl;
     }
+    cout << "\n***FINISHED CELLS***\n" << endl;
     for (block_class_iter = macro_class_map.begin(); block_class_iter != macro_class_map.end() ; block_class_iter++)
     {
         cout << block_class_iter-> first << " / " << block_class_iter -> second.macro_site.site_class << " / " << block_class_iter -> second.size.width << " / " << block_class_iter -> second.size.height<< endl;
     }
     cout << "\n***END LEF***\n" << endl;
+     */
 
     /*
      //def
@@ -758,13 +805,14 @@ int main ()
     for (cellIter = cell_map.begin(); cellIter != cell_map.end() ; cellIter++)
     {
         cout << cellIter-> first << " / " << cellIter -> second.macroName << " / " << cellIter -> second.placeType
-             << " / " << cellIter -> second.pointX << " / " << cellIter -> second.pointY << " / " << cellIter -> second.orient
+             << " / " << cellIter -> second.posX << " / " << cellIter -> second.posY << " / " << cellIter -> second.orient
              << " / " << cellIter -> second.size.width << " / " << cellIter -> second.size.height << endl;
     }
     cout << "\n***END DEF***\n" << endl;
      */
 
     //mlist
+    /*
     cout << "\n***START MLIST OUTPUT***\n" << endl;
     cout << "DIE POINTS: " << endl;
     for (auto & i : die_vector)
@@ -775,10 +823,11 @@ int main ()
     for (compIter = macro_map.begin(); compIter != macro_map.end() ; compIter++)
     {
         cout << compIter-> first << " / " << compIter -> second.macroName << " / " << compIter -> second.placeType
-             << " / " << compIter -> second.pointX << " / " << compIter -> second.pointY << " / " << compIter -> second.orient
+             << " / " << compIter -> second.posX << " / " << compIter -> second.posY << " / " << compIter -> second.orient
              << " / " << compIter -> second.size.width << " / " << compIter -> second.size.height << endl;
     }
     cout << "\n***END MLIST***\n" << endl;
+     */
 
     //verilog
     /*
@@ -787,13 +836,16 @@ int main ()
         cout << netIter->first << endl;
     }
      */
+
+    calculate();
+
     //end main
     return 0;
 }
 
-float getWirelength(Point A, Point B)
+double getWirelength(Point A, Point B)
 {
-    float distance = abs(A.posX - B.posX) + abs(A.posY - B.posY);
+    double distance = abs(A.posX - B.posX) + abs(A.posY - B.posY);
     return distance;
 }
 
