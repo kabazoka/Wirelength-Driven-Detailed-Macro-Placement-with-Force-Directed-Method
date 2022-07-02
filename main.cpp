@@ -24,15 +24,15 @@ struct Point
     double posX;
     double posY;
 };
-struct Floating_point
+struct Float_Point
 {
     double posX;
     double posY;
 };
 struct Rectangle
 {
-    Floating_point a;
-    Floating_point b;
+    Float_Point a;
+    Float_Point b;
 };
 
 //constraint file struct
@@ -64,7 +64,7 @@ struct PIN
     LAYER pin_layer;
     vector<Rectangle> rect_vector;
     string connected_wire;
-    Floating_point relativePoint{};
+    Float_Point relativePoint{};
 };
 struct STD_CELL_LEF
 {
@@ -82,10 +82,11 @@ struct MACRO_LEF
 //Def file and mlist file struct
 struct STD_CELL
 {
-    string macroName;
+    string macroType;
+    string cellName;
     string placeType;
-    float posX;
-    float posY;
+    double posX;
+    double posY;
     string orient;
     //lef info
     Dimension size{};
@@ -94,10 +95,11 @@ struct STD_CELL
 };
 struct MACRO
 {
+    string macroType;
     string macroName;
     string placeType;
-    float posX{};
-    float posY{};
+    double posX{};
+    double posY{};
     string orient;
     //lef info
     Dimension size{};
@@ -122,8 +124,8 @@ int lef_unit;
 double manufacturinggrid;
 unordered_map<string, SITE> site_map;
 unordered_map<string, LAYER> layer_map;
-unordered_map<string, STD_CELL_LEF> cell_class_map; //<macroName, Macro>
-unordered_map<string, MACRO_LEF> macro_class_map; //<macroName, Macro>
+unordered_map<string, STD_CELL_LEF> cell_class_map; //<macroType, Macro>
+unordered_map<string, MACRO_LEF> macro_class_map; //<macroType, Macro>
 //def info
 unordered_map<string, MACRO> macro_map; //<compName, info>
 unordered_map<string, STD_CELL> cell_map; //<compName, info>
@@ -131,7 +133,7 @@ unordered_map<string, STD_CELL_LEF>::iterator core_class_iter;
 unordered_map<string, MACRO_LEF>::iterator block_class_iter;
 unordered_map<string, STD_CELL>::iterator cellIter;
 unordered_map<string, MACRO>::iterator macroIter1;
-unordered_map<string, MACRO>::iterator macroIter2;
+
 //verilog info
 unordered_map<string, vector<PIN_INDEX>> netlistMap; //<wire name, vector<pin/macro>>
 unordered_map<string, vector<PIN_INDEX>>::iterator netIter;
@@ -249,7 +251,7 @@ void read_lef_file()
                 {
                     PIN pin;
                     STD_CELL_LEF core_macro;
-                    Floating_point pointA{}, pointB{};
+                    Float_Point pointA{}, pointB{};
                     Rectangle rect{};
                     ss1 = {}, ss2 = {};
                     vector<Rectangle> rec_vec;
@@ -330,7 +332,7 @@ void read_lef_file()
                     Dimension dime{};
                     MACRO_LEF block_macro;
                     PIN pin;
-                    Floating_point pointA{}, pointB{};
+                    Float_Point pointA{}, pointB{};
                     getline(lef_file, in_line); //CLASS
                     getline(lef_file, in_line); //FOREIGN
                     getline(lef_file, in_line); //ORIGIN
@@ -503,7 +505,8 @@ void read_def_file()
                     getline(def_file, in_line);
                     content_array = splitByPattern(in_line, " ");
                     string compName = content_array[1];
-                    stdCell.macroName = content_array[2];
+                    stdCell.cellName = compName;
+                    stdCell.macroType = content_array[2];
                     stdCellLef = cell_class_map[content_array[2]];
                     stdCell.size = stdCellLef.size;
                     stdCell.macro_site = stdCellLef.macro_site;
@@ -586,7 +589,8 @@ void read_mlist_file()
                     getline(mlist_file, in_line);
                     content_array = splitByPattern(in_line, " ");
                     string compName = content_array[1];
-                    macro.macroName = content_array[2];
+                    macro.macroName = compName;
+                    macro.macroType = content_array[2];
                     macroLef = macro_class_map[content_array[2]];
                     macro.size = macroLef.size;
                     macro.macro_site = macroLef.macro_site;
@@ -602,7 +606,7 @@ void read_mlist_file()
                     ss2 >> macro.posY;
                     macro.orient = content_array[6];
                     macro_map.insert(pair<string, MACRO>(compName, macro));
-                    cell_class_map.erase(macro.macroName);
+                    cell_class_map.erase(macro.macroType);
                 }
             }
         }
@@ -657,7 +661,7 @@ void read_verilog_file()
                             //
                             basicPinVec = netlistMap[wire_name];
                             netlistMap.erase(wire_name);
-                            pinIndex.macro_name = cell.macroName;
+                            pinIndex.macro_name = cell.cellName;
                             pinIndex.pin_name = str2;
                             basicPinVec.push_back(pinIndex);
                             netlistMap.insert(pair<string, vector<PIN_INDEX>>(wire_name, basicPinVec));
@@ -708,12 +712,15 @@ void read_verilog_file()
     }
 }
 
-void calculate()
+void calculate(unordered_map<string, MACRO> macroMap, unordered_map<string, STD_CELL> cellMap)
 {
-    for (macroIter1 = macro_map.begin(); macroIter1 != macro_map.end() ; macroIter1++) //loop of all macros
+    for (macroIter1 = macroMap.begin(); macroIter1 != macroMap.end() ; macroIter1++) //loop of all macros
     {
         double sumOfLength = 0;
         MACRO sourceMacro = macroIter1 -> second;
+        STD_CELL targetCell;
+        unordered_map<string, MACRO>::iterator macroIter2;
+        unordered_map<string, STD_CELL>::iterator cellIter2;
         for (pin_map_iter = sourceMacro.pin_map.begin(); pin_map_iter != sourceMacro.pin_map.end() ; pin_map_iter++) //loop of all pins in a macro
         {
             Point sourceP{}, targetP{};
@@ -722,17 +729,17 @@ void calculate()
             vector<PIN_INDEX> pinVec = netlistMap[wireName];
             for (auto & i : pinVec) //loop of all of the pins that the wire connects
             {
-                double tmpX{}, tmpY{};
                 PIN_INDEX pinIndex = i;
-                auto item = cell_map.find(pinIndex.macro_name);
-                if (item != cell_map.end())
+                double tmpX{}, tmpY{};
+                auto item = cellMap.find(pinIndex.macro_name);
+                if (item != cellMap.end())
                 {
                     tmpX = (sourceMacro.posX) / 2000;
                     tmpY = (sourceMacro.posY) / 2000;
                     sourceP.posX = tmpX + sourcePin.relativePoint.posX;
                     sourceP.posY = tmpY + sourcePin.relativePoint.posY;
-                    cellIter = cell_map.find(pinIndex.macro_name); //find the target macro
-                    STD_CELL targetCell = cellIter->second;
+                    cellIter2 = cellMap.find(pinIndex.macro_name); //find the target macro
+                    targetCell = cellIter2->second;
                     unordered_map<string, PIN> targetPinMap = targetCell.pin_map; //get the target pin map
                     PIN targetPin = targetPinMap[pinIndex.pin_name]; //get the pin from the pin map with index
                     tmpX = (targetCell.posX) / 2000;
@@ -759,7 +766,7 @@ void calculate()
                 }
             }
         }
-        cout << sourceMacro.macroName << " wire length: " << sumOfLength << endl;
+        cout << sourceMacro.macroType << " wire length: " << sumOfLength << endl;
     }
 }
 
@@ -804,7 +811,7 @@ int main ()
     cout << "\nCOMPONENTS: " << endl;
     for (cellIter = cell_map.begin(); cellIter != cell_map.end() ; cellIter++)
     {
-        cout << cellIter-> first << " / " << cellIter -> second.macroName << " / " << cellIter -> second.placeType
+        cout << cellIter-> first << " / " << cellIter -> second.macroType << " / " << cellIter -> second.placeType
              << " / " << cellIter -> second.posX << " / " << cellIter -> second.posY << " / " << cellIter -> second.orient
              << " / " << cellIter -> second.size.width << " / " << cellIter -> second.size.height << endl;
     }
@@ -822,7 +829,7 @@ int main ()
     cout << "\nCOMPONENTS: " << endl;
     for (compIter = macro_map.begin(); compIter != macro_map.end() ; compIter++)
     {
-        cout << compIter-> first << " / " << compIter -> second.macroName << " / " << compIter -> second.placeType
+        cout << compIter-> first << " / " << compIter -> second.macroType << " / " << compIter -> second.placeType
              << " / " << compIter -> second.posX << " / " << compIter -> second.posY << " / " << compIter -> second.orient
              << " / " << compIter -> second.size.width << " / " << compIter -> second.size.height << endl;
     }
@@ -837,7 +844,7 @@ int main ()
     }
      */
 
-    calculate();
+    calculate(macro_map, cell_map);
 
     //end main
     return 0;
