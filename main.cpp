@@ -14,6 +14,7 @@ vector<string> splitByPattern(string content, const string& pattern);
 string &trim(string &str);
 int vector_to_int(vector<int>);
 
+enum Orientation {N = 0, FN = 1, S = 2, FS = 3};
 struct Dimension
 {
     double width;
@@ -383,10 +384,13 @@ void read_lef_file()
                             rect.b = pointB;
                             rec_vec.push_back(rect);
                             //cal
-                            if (pin.relativePoint.posX == 0 && pin.relativePoint.posY == 0) {
+                            if (pin.relativePoint.posX == 0 && pin.relativePoint.posY == 0)
+                            {
                                 pin.relativePoint.posX = (pointA.posX + pointB.posX) / 2;
                                 pin.relativePoint.posY = (pointA.posY + pointB.posY) / 2;
-                            } else {
+                            }
+                            else
+                            {
                                 double tempX, tempY;
                                 tempX = (pointA.posX + pointB.posX) / 2;
                                 tempY = (pointA.posY + pointB.posY) / 2;
@@ -712,61 +716,113 @@ void read_verilog_file()
     }
 }
 
-void calculate(unordered_map<string, MACRO> macroMap, unordered_map<string, STD_CELL> cellMap)
+void flipping(unordered_map<string, MACRO> macroMap, unordered_map<string, STD_CELL> cellMap)
 {
     for (macroIter1 = macroMap.begin(); macroIter1 != macroMap.end() ; macroIter1++) //loop of all macros
     {
-        double sumOfLength = 0;
+        double shortestLength = 0, initialLength = 0;
         MACRO sourceMacro = macroIter1 -> second;
         STD_CELL targetCell;
         unordered_map<string, MACRO>::iterator macroIter2;
         unordered_map<string, STD_CELL>::iterator cellIter2;
-        for (pin_map_iter = sourceMacro.pin_map.begin(); pin_map_iter != sourceMacro.pin_map.end() ; pin_map_iter++) //loop of all pins in a macro
+        Orientation currentOri = N, shortestOri = N;
+        if (sourceMacro.orient == "N")
+            currentOri = N;
+        else if(sourceMacro.orient == "FN")
+            currentOri = FN;
+        else if(sourceMacro.orient == "S")
+            currentOri = S;
+        else if(sourceMacro.orient == "FS")
+            currentOri = FS;
+        for (int ori = currentOri; ori <= 3; ori++)//flipping the macro
         {
-            Point sourceP{}, targetP{};
-            PIN sourcePin = pin_map_iter->second;
-            string wireName = sourcePin.connected_wire; //get the pin's connected wire
-            vector<PIN_INDEX> pinVec = netlistMap[wireName];
-            for (auto & i : pinVec) //loop of all of the pins that the wire connects
+            double sumOfLength = 0;
+            for (pin_map_iter = sourceMacro.pin_map.begin(); pin_map_iter != sourceMacro.pin_map.end() ; pin_map_iter++) //loop of all pins in a macro
             {
-                PIN_INDEX pinIndex = i;
-                double tmpX{}, tmpY{};
-                auto item = cellMap.find(pinIndex.macro_name);
-                if (item != cellMap.end())
+                Point sourceP{}, targetP{};
+                PIN sourcePin = pin_map_iter->second;
+                string wireName = sourcePin.connected_wire; //get the pin's connected wire
+                vector<PIN_INDEX> pinVec = netlistMap[wireName];
+                for (auto & i : pinVec) //loop of all of the pins that the wire connects
                 {
+                    PIN_INDEX pinIndex = i;
+                    double tmpX{}, tmpY{};
                     tmpX = (sourceMacro.posX) / 2000;
                     tmpY = (sourceMacro.posY) / 2000;
-                    sourceP.posX = tmpX + sourcePin.relativePoint.posX;
-                    sourceP.posY = tmpY + sourcePin.relativePoint.posY;
-                    cellIter2 = cellMap.find(pinIndex.macro_name); //find the target macro
-                    targetCell = cellIter2->second;
-                    unordered_map<string, PIN> targetPinMap = targetCell.pin_map; //get the target pin map
-                    PIN targetPin = targetPinMap[pinIndex.pin_name]; //get the pin from the pin map with index
-                    tmpX = (targetCell.posX) / 2000;
-                    tmpY = (targetCell.posY) / 2000;
-                    targetP.posX = tmpX + targetPin.relativePoint.posX;
-                    targetP.posY = tmpY + targetPin.relativePoint.posY;
-                    sumOfLength += getWirelength(sourceP, targetP);
-                }
-                else
-                {
-                    tmpX = (sourceMacro.posX) / 2000;
-                    tmpY = (sourceMacro.posY) / 2000;
-                    sourceP.posX = tmpX + sourcePin.relativePoint.posX;
-                    sourceP.posY = tmpY + sourcePin.relativePoint.posY;
-                    macroIter2 = macro_map.find(pinIndex.macro_name); //find the target macro
-                    MACRO targetMacro = macroIter2->second;
-                    unordered_map<string, PIN> targetPinMap = targetMacro.pin_map; //get the target pin map
-                    PIN targetPin = targetPinMap[pinIndex.pin_name]; //get the pin from the pin map with index
-                    tmpX = (targetMacro.posX) / 2000;
-                    tmpY = (targetMacro.posY) / 2000;
-                    targetP.posX = tmpX + targetPin.relativePoint.posX;
-                    targetP.posY = tmpY + targetPin.relativePoint.posY;
+                    if (ori == 0) //N
+                    {
+                        sourceP.posX = tmpX + sourcePin.relativePoint.posX;
+                        sourceP.posY = tmpY + sourcePin.relativePoint.posY;
+                    }
+                    if (ori == 1) //FN
+                    {
+                        sourceP.posX = tmpX + (sourceMacro.size.width - sourcePin.relativePoint.posX);
+                        sourceP.posY = tmpY + sourcePin.relativePoint.posY;
+                    }
+                    if (ori == 2) //S
+                    {
+                        sourceP.posX = tmpX + sourcePin.relativePoint.posX;
+                        sourceP.posY = tmpY + (sourceMacro.size.height - sourcePin.relativePoint.posY);
+                    }
+                    if (ori == 3) //FS
+                    {
+                        sourceP.posX = tmpX + (sourceMacro.size.width - sourcePin.relativePoint.posX);
+                        sourceP.posY = tmpY + (sourceMacro.size.height - sourcePin.relativePoint.posY);
+                    }
+                    auto item = cellMap.find(pinIndex.macro_name);
+                    if (item != cellMap.end())
+                    {
+                        cellIter2 = cellMap.find(pinIndex.macro_name); //find the target macro
+                        targetCell = cellIter2->second;
+                        unordered_map<string, PIN> targetPinMap = targetCell.pin_map; //get the target pin map
+                        PIN targetPin = targetPinMap[pinIndex.pin_name]; //get the pin from the pin map with index
+                        tmpX = (targetCell.posX) / 2000;
+                        tmpY = (targetCell.posY) / 2000;
+                        targetP.posX = tmpX + targetPin.relativePoint.posX;
+                        targetP.posY = tmpY + targetPin.relativePoint.posY;
+                    }
+                    else
+                    {
+                        macroIter2 = macro_map.find(pinIndex.macro_name); //find the target macro
+                        MACRO targetMacro = macroIter2->second;
+                        unordered_map<string, PIN> targetPinMap = targetMacro.pin_map; //get the target pin map
+                        PIN targetPin = targetPinMap[pinIndex.pin_name]; //get the pin from the pin map with index
+                        tmpX = (targetMacro.posX) / 2000;
+                        tmpY = (targetMacro.posY) / 2000;
+                        targetP.posX = tmpX + targetPin.relativePoint.posX;
+                        targetP.posY = tmpY + targetPin.relativePoint.posY;
+                    }
                     sumOfLength += getWirelength(sourceP, targetP);
                 }
             }
+            currentOri = static_cast<Orientation>(ori);
+            if (shortestLength == 0 || shortestLength > sumOfLength)
+            {
+                shortestLength = sumOfLength;
+                shortestOri = currentOri;
+            }
+            if (initialLength == 0)
+            {
+                initialLength = sumOfLength;
+            }
         }
-        cout << sourceMacro.macroType << " wire length: " << sumOfLength << endl;
+        if (shortestOri == N)
+            sourceMacro.orient = "N";
+        else if(shortestOri == FN)
+            sourceMacro.orient = "FN";
+        else if(shortestOri == S)
+            sourceMacro.orient = "S";
+        else if(shortestOri == FS)
+            sourceMacro.orient = "FS";
+        cout << sourceMacro.macroName <<" Orientation: " << sourceMacro.orient << " wireLength(shortest/initial): " << shortestLength <<" / " << initialLength << endl;
+    }
+}
+
+void displace(unordered_map<string, MACRO> macroMap, unordered_map<string, STD_CELL> cellMap)
+{
+    for (macroIter1 = macroMap.begin(); macroIter1 != macroMap.end() ; macroIter1++) //loop of all macros
+    {
+
     }
 }
 
@@ -844,7 +900,8 @@ int main ()
     }
      */
 
-    calculate(macro_map, cell_map);
+    flipping(macro_map, cell_map);
+    displace(macro_map, cell_map);
 
     //end main
     return 0;
@@ -900,4 +957,5 @@ int vector_to_int(vector<int> num)
     }
     return n;
 }
+
 
