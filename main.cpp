@@ -13,6 +13,8 @@ using namespace std;
 vector<string> splitByPattern(string content, const string& pattern);
 string &trim(string &str);
 int vector_to_int(vector<int>);
+double getTotalWirelength(MACRO);//per macro
+void displacement(MACRO, int);
 
 enum Orientation {N = 0, FN = 1, S = 2, FS = 3};
 struct Dimension
@@ -822,7 +824,45 @@ void displace(unordered_map<string, MACRO> macroMap, unordered_map<string, STD_C
 {
     for (macroIter1 = macroMap.begin(); macroIter1 != macroMap.end() ; macroIter1++) //loop of all macros
     {
+        double shortestLength = 0, initialLength = 0;
+        MACRO sourceMacro = macroIter1 -> second;
+        MACRO cloneMacro = sourceMacro;
+        STD_CELL targetCell;
+        unordered_map<string, MACRO>::iterator macroIter2;
+        unordered_map<string, STD_CELL>::iterator cellIter2;
+        for (int dir; dir <= 1; dir++)//changing direction of displace
+        {
+            int displace_upperbound = constraint.maximum_displacement;
+            double sumOfLength = 0;
+            int displaceValue = 0;
+            while(displaceValue <= displace_upperbound)
+            {
+                displacement(cloneMacro, 1, 0);//move north first
+                if (getTotalWirelength(sourceMacro) < getTotalWirelength(cloneMacro))//if wirelength became shorter then continue moving
+                {
+                    do//try moving north recursively
+                    {
+                        displacement(sourceMacro, 1, 0);
+                        displacement(cloneMacro, 1, 0);
+                        displaceValue++;
+                        if(displaceValue >= displace_upperbound)
+                            break;
+                    }while(getTotalWirelength(sourceMacro) < getTotalWirelength(cloneMacro));
+                }
+                else//if not then move south
+                {
+                    do//try moving south recursively
+                    {
+                        displacement(sourceMacro, 1, 2);
+                        displacement(cloneMacro, 1, 2);
+                        displaceValue++;
+                        if(displaceValue >= displace_upperbound)
+                            break;
+                    }while(getTotalWirelength(sourceMacro) < getTotalWirelength(cloneMacro));
+                }
 
+            }
+        }
     }
 }
 
@@ -959,3 +999,79 @@ int vector_to_int(vector<int> num)
 }
 
 
+double getTotalWirelength(MACRO macro)//per macro
+{
+    double shortestLength = 0, initialLength = 0;
+    MACRO sourceMacro = macro;
+    MACRO targetMacro;
+    STD_CELL targetCell;
+    unordered_map<string, MACRO>::iterator macroIter2;
+    unordered_map<string, STD_CELL>::iterator cellIter2;
+    double sumOfLength = 0;
+    for (pin_map_iter = sourceMacro.pin_map.begin(); pin_map_iter != sourceMacro.pin_map.end() ; pin_map_iter++) //loop of all pins in a macro
+    {
+        Point sourceP{}, targetP{};
+        PIN sourcePin = pin_map_iter->second;
+        string wireName = sourcePin.connected_wire; //get the pin's connected wire
+        vector<PIN_INDEX> pinVec = netlistMap[wireName];
+        for (auto & i : pinVec) //loop of all of the pins that the wire connects
+        {
+            PIN_INDEX pinIndex = i;
+            double tmpX{}, tmpY{};
+            tmpX = (sourceMacro.posX) / 2000;
+            tmpY = (sourceMacro.posY) / 2000;
+            sourceP.posX = tmpX + sourcePin.relativePoint.posX;
+            sourceP.posY = tmpY + sourcePin.relativePoint.posY;
+            auto item = cellMap.find(pinIndex.macro_name);
+            if (item != cellMap.end())
+            {
+                cellIter2 = cellMap.find(pinIndex.macro_name); //find the target macro
+                targetCell = cellIter2->second;
+                unordered_map<string, PIN> targetPinMap = targetCell.pin_map; //get the target pin map
+                PIN targetPin = targetPinMap[pinIndex.pin_name]; //get the pin from the pin map with index
+                tmpX = (targetCell.posX) / 2000;
+                tmpY = (targetCell.posY) / 2000;
+                targetP.posX = tmpX + targetPin.relativePoint.posX;
+                targetP.posY = tmpY + targetPin.relativePoint.posY;
+            }
+            else
+            {
+                macroIter2 = macro_map.find(pinIndex.macro_name); //find the target macro
+                MACRO targetMacro = macroIter2->second;
+                unordered_map<string, PIN> targetPinMap = targetMacro.pin_map; //get the target pin map
+                PIN targetPin = targetPinMap[pinIndex.pin_name]; //get the pin from the pin map with index
+                tmpX = (targetMacro.posX) / 2000;
+                tmpY = (targetMacro.posY) / 2000;
+                targetP.posX = tmpX + targetPin.relativePoint.posX;
+                targetP.posY = tmpY + targetPin.relativePoint.posY;
+            }
+            sumOfLength += getWirelength(sourceP, targetP);
+        }
+    }
+    return sumOfLength;
+}
+
+void displacement(MACRO macro, int micron, int direction)
+{
+    if (direction == 0)
+    {
+        macro.posY += micron;
+    }
+    else if (direction == 1)
+    {
+        macro.posX += micron;
+    }
+    else if (direction == 2)
+    {
+        macro.posY -= micron;
+    }
+    else if (direction == 3)
+    {
+        macro.posX -= micron;
+    }
+}
+
+bool checkOverlapping(MACRO)//return false if overlapped
+{
+
+}
