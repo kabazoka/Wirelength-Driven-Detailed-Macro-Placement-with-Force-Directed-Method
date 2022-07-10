@@ -6,15 +6,11 @@
 #include <algorithm>
 #include <cmath>
 #include <sstream>
+#include <utility>
 #include <vector>
 
 using namespace std;
 
-vector<string> splitByPattern(string content, const string& pattern);
-string &trim(string &str);
-int vector_to_int(vector<int>);
-double getTotalWirelength(MACRO);//per macro
-void displacement(MACRO, int);
 
 enum Orientation {N = 0, FN = 1, S = 2, FS = 3};
 struct Dimension
@@ -144,7 +140,14 @@ unordered_map<string, vector<PIN_INDEX>>::iterator netIter;
 unordered_map<string, PIN>::iterator pin_map_iter;
 
 //functions
-double getWirelength(Point, Point);
+double getDistance(Point, Point);//return the manhattan distance
+bool checkOverlap(const MACRO&, unordered_map<string, MACRO>);//return true if overlapped
+bool doOverlap(Float_Point, Float_Point, Float_Point, Float_Point);
+vector<string> splitByPattern(string content, const string& pattern);
+string &trim(string &str);
+int vector_to_int(vector<int>);
+double getWireLength(MACRO);//per macro
+void macroDisplace(MACRO, int);
 
 void read_constraint()
 {
@@ -794,7 +797,7 @@ void flipping(unordered_map<string, MACRO> macroMap, unordered_map<string, STD_C
                         targetP.posX = tmpX + targetPin.relativePoint.posX;
                         targetP.posY = tmpY + targetPin.relativePoint.posY;
                     }
-                    sumOfLength += getWirelength(sourceP, targetP);
+                    sumOfLength += getDistance(sourceP, targetP);
                 }
             }
             currentOri = static_cast<Orientation>(ori);
@@ -837,28 +840,28 @@ void displace(unordered_map<string, MACRO> macroMap, unordered_map<string, STD_C
             int displaceValue = 0;
             while(displaceValue <= displace_upperbound)
             {
-                displacement(cloneMacro, 1, 0);//move north first
-                if (getTotalWirelength(sourceMacro) < getTotalWirelength(cloneMacro))//if wirelength became shorter then continue moving
-                {
+                macroDisplace(cloneMacro, 0);//move north first
+                if (getWireLength(sourceMacro) < getWireLength(cloneMacro) && !checkOverlap(cloneMacro, macroMap))
+                { //if wirelength became shorter && not overlapping then continue moving
                     do//try moving north recursively
                     {
-                        displacement(sourceMacro, 1, 0);
-                        displacement(cloneMacro, 1, 0);
+                        macroDisplace(sourceMacro, 0);
+                        macroDisplace(cloneMacro, 0);
                         displaceValue++;
                         if(displaceValue >= displace_upperbound)
                             break;
-                    }while(getTotalWirelength(sourceMacro) < getTotalWirelength(cloneMacro));
+                    }while(getWireLength(sourceMacro) < getWireLength(cloneMacro) && !checkOverlap(cloneMacro, macroMap));
                 }
                 else//if not then move south
                 {
                     do//try moving south recursively
                     {
-                        displacement(sourceMacro, 1, 2);
-                        displacement(cloneMacro, 1, 2);
+                        macroDisplace(sourceMacro, 2);
+                        macroDisplace(cloneMacro, 2);
                         displaceValue++;
                         if(displaceValue >= displace_upperbound)
                             break;
-                    }while(getTotalWirelength(sourceMacro) < getTotalWirelength(cloneMacro));
+                    }while(getWireLength(sourceMacro) < getWireLength(cloneMacro) && !checkOverlap(cloneMacro, macroMap));
                 }
 
             }
@@ -947,7 +950,7 @@ int main ()
     return 0;
 }
 
-double getWirelength(Point A, Point B)
+double getDistance(Point A, Point B)
 {
     double distance = abs(A.posX - B.posX) + abs(A.posY - B.posY);
     return distance;
@@ -998,12 +1001,27 @@ int vector_to_int(vector<int> num)
     return n;
 }
 
+// Returns true if two rectangles (l1, r1) and (l2, r2)
+// overlap
+bool doOverlap(Float_Point l1, Float_Point r1, Float_Point l2, Float_Point r2)
+{
+    // if rectangle has area 0, no overlap
+    if (l1.posX == r1.posX || l1.posY == r1.posY || r2.posX == l2.posX || l2.posY == r2.posY)
+        return false;
+    // If one rectangle is on left side of other
+    if (l1.posX > r2.posX || l2.posX > r1.posX)
+        return false;
+    // If one rectangle is above other
+    if (r1.posY > l2.posY || r2.posY > l1.posY)
+        return false;
 
-double getTotalWirelength(MACRO macro)//per macro
+    return true;
+}
+
+double getWireLength(MACRO macro, unordered_map<string, MACRO> macroMap, unordered_map<string, STD_CELL> cellMap)//per macro
 {
     double shortestLength = 0, initialLength = 0;
-    MACRO sourceMacro = macro;
-    MACRO targetMacro;
+    MACRO sourceMacro = std::move(macro);
     STD_CELL targetCell;
     unordered_map<string, MACRO>::iterator macroIter2;
     unordered_map<string, STD_CELL>::iterator cellIter2;
@@ -1045,52 +1063,54 @@ double getTotalWirelength(MACRO macro)//per macro
                 targetP.posX = tmpX + targetPin.relativePoint.posX;
                 targetP.posY = tmpY + targetPin.relativePoint.posY;
             }
-            sumOfLength += getWirelength(sourceP, targetP);
+            sumOfLength += getDistance(sourceP, targetP);
         }
     }
     return sumOfLength;
 }
 
-void displacement(MACRO macro, int micron, int direction)
+void macroDisplace(MACRO macro, int direction)
 {
-    if (direction == 0)
+    int micron = 1;
+    if (direction == 0)//up
     {
         macro.posY += micron;
     }
-    else if (direction == 1)
+    else if (direction == 1)//right
     {
         macro.posX += micron;
     }
-    else if (direction == 2)
+    else if (direction == 2)//down
     {
         macro.posY -= micron;
     }
-    else if (direction == 3)
+    else if (direction == 3)//left
     {
         macro.posX -= micron;
     }
 }
 
-bool checkOverlapping(MACRO)//return true if overlapped
+bool checkOverlap(const MACRO& macro, unordered_map<string, MACRO> macroMap)//return true if overlapped
 {
-    for()//all macro
+    unordered_map<string, MACRO>::iterator macroIter2;
+    bool overlapped = false;
+    for (macroIter2 = macroMap.begin(); macroIter2 != macroMap.end() ; macroIter2++) //loop of all macros
     {
-         
-        // Returns true if two rectangles (l1, r1) and (l2, r2)
-        // overlap
-        bool doOverlap(Point l1, Point r1, Point l2, Point r2)
-        {
-        // if rectangle has area 0, no overlap
-        if (l1.x == r1.x || l1.y == r1.y || r2.x == l2.x || l2.y == r2.y)
-            return false;
-        // If one rectangle is on left side of other
-        if (l1.x > r2.x || l2.x > r1.x)
-            return false;
-        // If one rectangle is above other
-        if (r1.y > l2.y || r2.y > l1.y)
-            return false;
-    
-        return true;
-        }
+        if (macro.macroName == macroIter2->second.macroName)//skip the same component
+            continue;
+        Float_Point l1{}, r1{}, l2{}, r2{};
+        l1.posX = macro.posX;
+        l1.posY = macro.posY;
+        r1.posX = macro.posX + macro.size.width;
+        r1.posY = macro.posY + macro.size.height;
+        l2.posX = macroIter2->second.posX;
+        l2.posY = macroIter2->second.posY;
+        r2.posX = macroIter2->second.posX + macroIter2->second.size.width;
+        r2.posY = macroIter2->second.posX + macroIter2->second.size.height;
+        if(doOverlap(l1, r1, l2, r2))
+            overlapped = true;
     }
+    if (overlapped)
+        return true;
 }
+
