@@ -132,6 +132,8 @@ unordered_map<string, STD_CELL_LEF>::iterator core_class_iter;
 unordered_map<string, MACRO_LEF>::iterator block_class_iter;
 unordered_map<string, STD_CELL>::iterator cellIter;
 unordered_map<string, MACRO>::iterator macroIter1;
+//mList
+int macroCount = 0;
 
 //verilog info
 unordered_map<string, vector<PIN_INDEX>> netlistMap; //<wire name, vector<pin/macro>>
@@ -146,8 +148,9 @@ bool doOverlap(Float_Point, Float_Point, Float_Point, Float_Point);
 vector<string> splitByPattern(string content, const string& pattern);
 string &trim(string &str);
 int vector_to_int(vector<int>);
-double getWireLength(MACRO);//per macro
-void macroDisplace(MACRO, int);
+double getWireLength(MACRO, const unordered_map<string, MACRO>&, unordered_map<string, STD_CELL>&);//per macro
+//void macroDisplace(MACRO, int);
+//bool outOfBounds(MACRO);
 
 void read_constraint()
 {
@@ -547,6 +550,7 @@ void read_mlist_file()
     {
         while ( getline (mlist_file, in_line) )
         {
+            /*
             //check if readin the DIEAREA section
             if (in_line.find("DIEAREA") != string::npos)
             {
@@ -583,6 +587,7 @@ void read_mlist_file()
                     }
                 }
             }
+             */
             //check if readin the COMPONENTS section
             if (in_line.find("COMPONENTS") != string::npos)
             {
@@ -593,6 +598,7 @@ void read_mlist_file()
                 int compNum;
                 ss << content_array[1];
                 ss >> compNum;
+                macroCount = compNum;
                 for (int i = 0; i < compNum; i++)
                 {
                     getline(mlist_file, in_line);
@@ -819,28 +825,28 @@ void flipping(unordered_map<string, MACRO> macroMap, unordered_map<string, STD_C
             sourceMacro.orient = "S";
         else if(shortestOri == FS)
             sourceMacro.orient = "FS";
+        macro_map[sourceMacro.macroName] = sourceMacro;
         cout << sourceMacro.macroName <<" Orientation: " << sourceMacro.orient << " wireLength(shortest/initial): " << shortestLength <<" / " << initialLength << endl;
     }
 }
-
-void displace(unordered_map<string, MACRO> macroMap, unordered_map<string, STD_CELL> cellMap)
+/*
+void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string, STD_CELL>& cellMap)
 {
     for (macroIter1 = macroMap.begin(); macroIter1 != macroMap.end() ; macroIter1++) //loop of all macros
     {
-        double shortestLength = 0, initialLength = 0;
         MACRO sourceMacro = macroIter1 -> second;
-        MACRO cloneMacro = sourceMacro;
+        const MACRO& cloneMacro = sourceMacro;
         STD_CELL targetCell;
         unordered_map<string, MACRO>::iterator macroIter2;
         unordered_map<string, STD_CELL>::iterator cellIter2;
-        for (int dir; dir <= 1; dir++)//changing direction of displace
+        for (int dir = 0; dir <= 1; dir++)//changing direction of displace
         {
             int displace_upperbound = constraint.maximum_displacement;
             double sumOfLength = 0;
             int displaceValue = 0;
             while(displaceValue <= displace_upperbound)
             {
-                macroDisplace(cloneMacro, 0);//move north first
+                macroDisplace(cloneMacro, 0);//move clone macro north first
                 if (getWireLength(sourceMacro) < getWireLength(cloneMacro) && !checkOverlap(cloneMacro, macroMap))
                 { //if wirelength became shorter && not overlapping then continue moving
                     do//try moving north recursively
@@ -863,9 +869,43 @@ void displace(unordered_map<string, MACRO> macroMap, unordered_map<string, STD_C
                             break;
                     }while(getWireLength(sourceMacro) < getWireLength(cloneMacro) && !checkOverlap(cloneMacro, macroMap));
                 }
-
             }
         }
+    }
+}
+
+ */
+
+void output()
+{
+    ofstream ofs;
+
+    ofs.open("case.dmp");
+    if (!ofs.is_open())
+    {
+        cout << "Failed to open file.\n";
+    }
+    else
+    {
+        ofs << "VERSION 5.7 ;\n";
+        ofs << "DESIGN case01 ;\n";
+        ofs << "UNITS DISTANCE MICRONS 2000 ;\n\n";
+        ofs << "DIEAREA ";
+        for (auto p : die_vector)
+        {
+            ofs << "( " << (int)p.posX << " " << (int)p.posY << " ) ";
+        }
+        ofs << ";\n\n";
+        ofs << "COMPONENTS " << macro_map.size() << " ;\n";
+        for (const auto& macro : macro_map)
+        {
+            ofs << "   - " << macro.second.macroName << " " << macro.second.macroType << endl;
+            ofs << "      + PLACED ( " << (int)macro.second.posX << " " << (int)macro.second.posY << " ) "
+            << macro.second.orient << " ;" << endl;
+        }
+        ofs << "END COMPONENTS\n\n\n\n";
+        ofs << "END DESIGN\n\n";
+        ofs.close();
     }
 }
 
@@ -943,8 +983,9 @@ int main ()
     }
      */
 
+    //displace(macro_map, cell_map);
     flipping(macro_map, cell_map);
-    displace(macro_map, cell_map);
+    output();
 
     //end main
     return 0;
@@ -1003,6 +1044,7 @@ int vector_to_int(vector<int> num)
 
 // Returns true if two rectangles (l1, r1) and (l2, r2)
 // overlap
+/*
 bool doOverlap(Float_Point l1, Float_Point r1, Float_Point l2, Float_Point r2)
 {
     // if rectangle has area 0, no overlap
@@ -1017,8 +1059,9 @@ bool doOverlap(Float_Point l1, Float_Point r1, Float_Point l2, Float_Point r2)
 
     return true;
 }
+*/
 
-double getWireLength(MACRO macro, unordered_map<string, MACRO> macroMap, unordered_map<string, STD_CELL> cellMap)//per macro
+double getWireLength(MACRO macro, const unordered_map<string, MACRO>& macroMap, unordered_map<string, STD_CELL>& cellMap)//per macro
 {
     double shortestLength = 0, initialLength = 0;
     MACRO sourceMacro = std::move(macro);
@@ -1071,7 +1114,7 @@ double getWireLength(MACRO macro, unordered_map<string, MACRO> macroMap, unorder
 
 void macroDisplace(MACRO macro, int direction)
 {
-    int micron = 1;
+    double micron = 1.0;
     if (direction == 0)//up
     {
         macro.posY += micron;
@@ -1090,7 +1133,8 @@ void macroDisplace(MACRO macro, int direction)
     }
 }
 
-bool checkOverlap(const MACRO& macro, unordered_map<string, MACRO> macroMap)//return true if overlapped
+/*
+bool checkOverlap(const MACRO& macro, unordered_map<string, MACRO>& macroMap)//return true if overlapped
 {
     unordered_map<string, MACRO>::iterator macroIter2;
     bool overlapped = false;
@@ -1113,4 +1157,6 @@ bool checkOverlap(const MACRO& macro, unordered_map<string, MACRO> macroMap)//re
     if (overlapped)
         return true;
 }
+
+ */
 
