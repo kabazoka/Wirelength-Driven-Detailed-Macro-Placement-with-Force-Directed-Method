@@ -919,11 +919,13 @@ int main ()
 
     //test output
     //txt
+    /*
     cout << "\n***START CONSTRAINT OUTPUT***\n" << endl;
     cout << "maximum_displacement_constraint: " << constraint.maximum_displacement << endl;
     cout << "minimum_channel_spacing_between_macros_constraint: " << constraint.minimum_channel_spacing_between_macros << endl;
     cout << "macro_halo: " << constraint.macro_halo << endl;
     cout << "\n***END CONSTRAINT***\n" << endl;
+     */
     //lef
     /*
     cout << "\n***START LEF OUTPUT***\n" << endl;
