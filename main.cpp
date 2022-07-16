@@ -783,7 +783,7 @@ void flipping(unordered_map<string, MACRO> macroMap, unordered_map<string, STD_C
                     auto item = cellMap.find(pinIndex.macro_name);
                     if (item != cellMap.end())
                     {
-                        cellIter2 = cellMap.find(pinIndex.macro_name); //find the target macro
+                        cellIter2 = cellMap.find(pinIndex.macro_name); //find the target cell
                         targetCell = cellIter2->second;
                         unordered_map<string, PIN> targetPinMap = targetCell.pin_map; //get the target pin map
                         PIN targetPin = targetPinMap[pinIndex.pin_name]; //get the pin from the pin map with index
@@ -829,7 +829,7 @@ void flipping(unordered_map<string, MACRO> macroMap, unordered_map<string, STD_C
         cout << sourceMacro.macroName <<" Orientation: " << sourceMacro.orient << " wireLength(shortest/initial): " << shortestLength <<" / " << initialLength << endl;
     }
 }
-/*
+
 void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string, STD_CELL>& cellMap)
 {
     for (macroIter1 = macroMap.begin(); macroIter1 != macroMap.end() ; macroIter1++) //loop of all macros
@@ -839,42 +839,51 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
         STD_CELL targetCell;
         unordered_map<string, MACRO>::iterator macroIter2;
         unordered_map<string, STD_CELL>::iterator cellIter2;
-        for (int dir = 0; dir <= 1; dir++)//changing direction of displace
+        for (pin_map_iter = sourceMacro.pin_map.begin(); pin_map_iter != sourceMacro.pin_map.end() ; pin_map_iter++) //loop of all pins in a macro
         {
-            int displace_upperbound = constraint.maximum_displacement;
-            double sumOfLength = 0;
-            int displaceValue = 0;
-            while(displaceValue <= displace_upperbound)
+            Point sourceP{}, targetP{};
+            double x_force{}, y_force{};
+            double distance{};
+            PIN sourcePin = pin_map_iter->second;
+            string wireName = sourcePin.connected_wire; //get the pin's connected wire
+            vector<PIN_INDEX> pinVec = netlistMap[wireName];
+            for (auto & i : pinVec) //loop of all the pins that the wire connects
             {
-                macroDisplace(cloneMacro, 0);//move clone macro north first
-                if (getWireLength(sourceMacro) < getWireLength(cloneMacro) && !checkOverlap(cloneMacro, macroMap))
-                { //if wirelength became shorter && not overlapping then continue moving
-                    do//try moving north recursively
-                    {
-                        macroDisplace(sourceMacro, 0);
-                        macroDisplace(cloneMacro, 0);
-                        displaceValue++;
-                        if(displaceValue >= displace_upperbound)
-                            break;
-                    }while(getWireLength(sourceMacro) < getWireLength(cloneMacro) && !checkOverlap(cloneMacro, macroMap));
-                }
-                else//if not then move south
+                PIN_INDEX pinIndex = i;
+                double tmpX{}, tmpY{};
+                sourceP.posX = tmpX + sourcePin.relativePoint.posX;
+                sourceP.posY = tmpY + sourcePin.relativePoint.posY;
+
+                auto item = cellMap.find(pinIndex.macro_name);
+                if (item != cellMap.end())
                 {
-                    do//try moving south recursively
-                    {
-                        macroDisplace(sourceMacro, 2);
-                        macroDisplace(cloneMacro, 2);
-                        displaceValue++;
-                        if(displaceValue >= displace_upperbound)
-                            break;
-                    }while(getWireLength(sourceMacro) < getWireLength(cloneMacro) && !checkOverlap(cloneMacro, macroMap));
+                    cellIter2 = cellMap.find(pinIndex.macro_name); //find the target cell
+                    targetCell = cellIter2->second;
+                    targetP.posX = (targetCell.posX) / 2000;
+                    targetP.posY = (targetCell.posY) / 2000;
                 }
+                else
+                {
+                    macroIter2 = macro_map.find(pinIndex.macro_name); //find the target macro
+                    MACRO targetMacro = macroIter2->second;
+                    unordered_map<string, PIN> targetPinMap = targetMacro.pin_map; //get the target pin map
+                    PIN targetPin = targetPinMap[pinIndex.pin_name]; //get the pin from the pin map with index
+                    tmpX = (targetMacro.posX) / 2000;
+                    tmpY = (targetMacro.posY) / 2000;
+                    targetP.posX = tmpX + targetPin.relativePoint.posX;
+                    targetP.posY = tmpY + targetPin.relativePoint.posY;
+                }
+                //force
+                distance += getDistance(sourceP, targetP);
+                x_force += targetP.posX - sourceP.posX;
+                y_force += targetP.posY - sourceP.posY;
             }
+            x_force = x_force / distance;
+            y_force = y_force / distance;
+            cout << sourceMacro.macroName << " / " << sourcePin.pin_name << " / (x/y) " << x_force << " / " << y_force << endl;
         }
     }
 }
-
- */
 
 void output()
 {
