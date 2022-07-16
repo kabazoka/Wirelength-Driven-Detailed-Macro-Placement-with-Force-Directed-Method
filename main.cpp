@@ -842,7 +842,7 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
         for (pin_map_iter = sourceMacro.pin_map.begin(); pin_map_iter != sourceMacro.pin_map.end() ; pin_map_iter++) //loop of all pins in a macro
         {
             Point sourceP{}, targetP{};
-            double x_force{}, y_force{};
+            double x_force{}, y_force{}, mgntd{};
             double distance{};
             PIN sourcePin = pin_map_iter->second;
             string wireName = sourcePin.connected_wire; //get the pin's connected wire
@@ -880,7 +880,11 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
             }
             x_force = x_force / distance;
             y_force = y_force / distance;
-            cout << sourceMacro.macroName << " / " << sourcePin.pin_name << " / (x/y) " << x_force << " / " << y_force << endl;
+            mgntd = sqrt(x_force*x_force + y_force*y_force);
+            if (mgntd > 10.0)
+                mgntd = 10.0;
+            cout << sourceMacro.macroName << " / " << sourcePin.pin_name << " / (x/y) " << x_force << " / " << y_force
+            << " / magnitude = " << mgntd << endl;
         }
     }
 }
