@@ -794,7 +794,7 @@ void flipping(unordered_map<string, MACRO> macroMap, unordered_map<string, STD_C
                     }
                     else
                     {
-                        macroIter2 = macro_map.find(pinIndex.macro_name); //find the target macro
+                        macroIter2 = macroMap.find(pinIndex.macro_name); //find the target macro
                         MACRO targetMacro = macroIter2->second;
                         unordered_map<string, PIN> targetPinMap = targetMacro.pin_map; //get the target pin map
                         PIN targetPin = targetPinMap[pinIndex.pin_name]; //get the pin from the pin map with index
@@ -857,7 +857,7 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
                 auto item = cellMap.find(pinIndex.macro_name);
                 if (item != cellMap.end())
                 {
-                    cellIter2 = cellMap.find(pinIndex.macro_name); //find the target cell
+                    cellIter2 = cell_map.find(pinIndex.macro_name); //find the target cell
                     targetCell = cellIter2->second;
                     targetP.posX = (targetCell.posX) / 2000;
                     targetP.posY = (targetCell.posY) / 2000;
@@ -998,7 +998,7 @@ int main ()
     }
      */
 
-    //displace(macro_map, cell_map);
+    displace(macro_map, cell_map);
     flipping(macro_map, cell_map);
     output();
 
