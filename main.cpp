@@ -143,14 +143,14 @@ unordered_map<string, PIN>::iterator pin_map_iter;
 
 //functions
 double getDistance(Point, Point);//return the manhattan distance
-bool checkOverlap(const MACRO&, unordered_map<string, MACRO>);//return true if overlapped
+bool checkOverlap(const MACRO&, unordered_map<string, MACRO>&);//return true if overlapped
 bool doOverlap(Float_Point, Float_Point, Float_Point, Float_Point);
 vector<string> splitByPattern(string content, const string& pattern);
 string &trim(string &str);
 int vector_to_int(vector<int>);
 double getWireLength(MACRO, const unordered_map<string, MACRO>&, unordered_map<string, STD_CELL>&);//per macro
-//void macroDisplace(MACRO, int);
-//bool outOfBounds(MACRO);
+void macroDisplace(MACRO, int);
+bool checkOutOfBounds(const MACRO&);//return true if out of bounds
 
 void read_constraint()
 {
@@ -834,15 +834,17 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
 {
     for (macroIter1 = macroMap.begin(); macroIter1 != macroMap.end() ; macroIter1++) //loop of all macros
     {
+        //start calculating where to displace
         MACRO sourceMacro = macroIter1 -> second;
         const MACRO& cloneMacro = sourceMacro;
         STD_CELL targetCell;
         unordered_map<string, MACRO>::iterator macroIter2;
         unordered_map<string, STD_CELL>::iterator cellIter2;
+        double xForce{}, yForce{}, magnitude{};
         for (pin_map_iter = sourceMacro.pin_map.begin(); pin_map_iter != sourceMacro.pin_map.end() ; pin_map_iter++) //loop of all pins in a macro
         {
             Point sourceP{}, targetP{};
-            double x_force{}, y_force{}, mgntd{};
+            double x_force{}, y_force{}, mgntd{}, m_x_force{}, m_y_force{};
             double distance{};
             PIN sourcePin = pin_map_iter->second;
             string wireName = sourcePin.connected_wire; //get the pin's connected wire
@@ -878,14 +880,73 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
                 x_force += targetP.posX - sourceP.posX;
                 y_force += targetP.posY - sourceP.posY;
             }
-            x_force = x_force / distance;
-            y_force = y_force / distance;
-            mgntd = sqrt(x_force*x_force + y_force*y_force);
-            if (mgntd > 10.0)
-                mgntd = 10.0;
-            cout << sourceMacro.macroName << " / " << sourcePin.pin_name << " / (x/y) " << x_force << " / " << y_force
-            << " / magnitude = " << mgntd << endl;
+            m_x_force += x_force;
+            m_y_force += y_force;
+            mgntd = sqrt(m_x_force*m_x_force + m_y_force*m_y_force);
+            //cout << sourceMacro.macroName << " / " << sourcePin.pin_name << " / (x/y) " << m_x_force << " / " << m_y_force
+            //<< " / magnitude = " << mgntd << endl;
+            xForce = m_x_force;
+            yForce = m_y_force;
+            magnitude = mgntd;
         }
+
+        //***finished calculation and start displacement***
+
+        xForce = 10 * (xForce / magnitude);
+        yForce = 10 * (yForce / magnitude);
+        //magnitude = sqrt(xForce*xForce + yForce*yForce);
+        //cout << sourceMacro.macroName << " " << xForce << " " << yForce << " / " << magnitude << endl;
+        for (int i = 0; i < floor(xForce); ++i) // displace x position recursively
+        {
+            if (xForce > 0)
+            {
+                macroDisplace(cloneMacro, 1);
+            }
+            else
+            {
+                macroDisplace(cloneMacro, 3);
+            }
+            if (checkOverlap(cloneMacro, macroMap))
+            {
+                break;
+            }
+            if (checkOutOfBounds(cloneMacro))
+            {
+                break;
+            }
+            if (xForce > 0)
+            {
+                macroDisplace(sourceMacro, 1);
+            }
+            else
+            {
+                macroDisplace(sourceMacro, 3);
+            }
+        }
+        for (int i = 0; i < floor(yForce); ++i) // displace y position recursively
+        {
+            if (yForce > 0)
+            {
+                macroDisplace(cloneMacro, 0);
+            }
+            else
+            {
+                macroDisplace(cloneMacro, 2);
+            }
+            if (checkOverlap(cloneMacro, macroMap))
+                break;
+            if (checkOutOfBounds(cloneMacro))
+                break;
+            if (yForce > 0)
+            {
+                macroDisplace(sourceMacro, 0);
+            }
+            else
+            {
+                macroDisplace(sourceMacro, 2);
+            }
+        }
+
     }
 }
 
@@ -924,6 +985,8 @@ void output()
 
 int main ()
 {
+    unordered_map<string, MACRO> mod_macro_map; //modified macro map
+
     read_constraint();
     read_lef_file();
     read_def_file();
@@ -1057,25 +1120,6 @@ int vector_to_int(vector<int> num)
     return n;
 }
 
-// Returns true if two rectangles (l1, r1) and (l2, r2)
-// overlap
-/*
-bool doOverlap(Float_Point l1, Float_Point r1, Float_Point l2, Float_Point r2)
-{
-    // if rectangle has area 0, no overlap
-    if (l1.posX == r1.posX || l1.posY == r1.posY || r2.posX == l2.posX || l2.posY == r2.posY)
-        return false;
-    // If one rectangle is on left side of other
-    if (l1.posX > r2.posX || l2.posX > r1.posX)
-        return false;
-    // If one rectangle is above other
-    if (r1.posY > l2.posY || r2.posY > l1.posY)
-        return false;
-
-    return true;
-}
-*/
-
 double getWireLength(MACRO macro, const unordered_map<string, MACRO>& macroMap, unordered_map<string, STD_CELL>& cellMap)//per macro
 {
     double shortestLength = 0, initialLength = 0;
@@ -1148,7 +1192,7 @@ void macroDisplace(MACRO macro, int direction)
     }
 }
 
-/*
+
 bool checkOverlap(const MACRO& macro, unordered_map<string, MACRO>& macroMap)//return true if overlapped
 {
     unordered_map<string, MACRO>::iterator macroIter2;
@@ -1170,8 +1214,36 @@ bool checkOverlap(const MACRO& macro, unordered_map<string, MACRO>& macroMap)//r
             overlapped = true;
     }
     if (overlapped)
+    {
         return true;
+    }
+    else 
+        return false;
 }
 
- */
+// Returns true if two rectangles (l1, r1) and (l2, r2)
+// overlap
+bool doOverlap(Float_Point l1, Float_Point r1, Float_Point l2, Float_Point r2)
+{
+    // if rectangle has area 0, no overlap
+    if (l1.posX == r1.posX || l1.posY == r1.posY || r2.posX == l2.posX || l2.posY == r2.posY)
+        return false;
+    // If one rectangle is on left side of other
+    if (l1.posX > r2.posX || l2.posX > r1.posX)
+        return false;
+    // If one rectangle is above other
+    if (r1.posY > l2.posY || r2.posY > l1.posY)
+        return false;
 
+    return true;
+}
+
+bool checkOutOfBounds(const MACRO& macro)//return true if out of bounds
+{
+    if ((macro.posX / 2000) + macro.size.width > die_vector.end()->posX)
+        return true;
+    if ((macro.posY / 2000) + macro.size.height > die_vector.end()->posY)
+        return true;
+
+    return false;
+}
