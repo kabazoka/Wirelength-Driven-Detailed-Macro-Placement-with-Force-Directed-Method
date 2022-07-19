@@ -140,6 +140,7 @@ unordered_map<string, vector<PIN_INDEX>> netlistMap; //<wire name, vector<pin/ma
 unordered_map<string, vector<PIN_INDEX>>::iterator netIter;
 
 unordered_map<string, PIN>::iterator pin_map_iter;
+unordered_map<string, MACRO> mod_macro_map; //modified macro map
 
 //functions
 double getDistance(Point, Point);//return the manhattan distance
@@ -149,7 +150,7 @@ vector<string> splitByPattern(string content, const string& pattern);
 string &trim(string &str);
 int vector_to_int(vector<int>);
 double getWireLength(MACRO, const unordered_map<string, MACRO>&, unordered_map<string, STD_CELL>&);//per macro
-void macroDisplace(MACRO, int);
+MACRO macroDisplace(MACRO, int);
 bool checkOutOfBounds(const MACRO&);//return true if out of bounds
 
 void read_constraint()
@@ -826,7 +827,7 @@ void flipping(unordered_map<string, MACRO> macroMap, unordered_map<string, STD_C
         else if(shortestOri == FS)
             sourceMacro.orient = "FS";
         macro_map[sourceMacro.macroName] = sourceMacro;
-        cout << sourceMacro.macroName <<" Orientation: " << sourceMacro.orient << " wireLength(shortest/initial): " << shortestLength <<" / " << initialLength << endl;
+        //cout << sourceMacro.macroName <<" Orientation: " << sourceMacro.orient << " wireLength(shortest/initial): " << shortestLength <<" / " << initialLength << endl;
     }
 }
 
@@ -836,7 +837,7 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
     {
         //start calculating where to displace
         MACRO sourceMacro = macroIter1 -> second;
-        const MACRO& cloneMacro = sourceMacro;
+        MACRO& cloneMacro = sourceMacro;
         STD_CELL targetCell;
         unordered_map<string, MACRO>::iterator macroIter2;
         unordered_map<string, STD_CELL>::iterator cellIter2;
@@ -900,11 +901,11 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
         {
             if (xForce > 0)
             {
-                macroDisplace(cloneMacro, 1);
+                cloneMacro = macroDisplace(cloneMacro, 1);
             }
             else
             {
-                macroDisplace(cloneMacro, 3);
+                cloneMacro = macroDisplace(cloneMacro, 3);
             }
             if (checkOverlap(cloneMacro, macroMap))
             {
@@ -914,39 +915,24 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
             {
                 break;
             }
-            if (xForce > 0)
-            {
-                macroDisplace(sourceMacro, 1);
-            }
-            else
-            {
-                macroDisplace(sourceMacro, 3);
-            }
+            macro_map[cloneMacro.macroName].posX = cloneMacro.posX;
         }
         for (int i = 0; i < floor(yForce); ++i) // displace y position recursively
         {
             if (yForce > 0)
             {
-                macroDisplace(cloneMacro, 0);
+                cloneMacro = macroDisplace(cloneMacro, 0);
             }
             else
             {
-                macroDisplace(cloneMacro, 2);
+                cloneMacro = macroDisplace(cloneMacro, 2);
             }
             if (checkOverlap(cloneMacro, macroMap))
                 break;
             if (checkOutOfBounds(cloneMacro))
                 break;
-            if (yForce > 0)
-            {
-                macroDisplace(sourceMacro, 0);
-            }
-            else
-            {
-                macroDisplace(sourceMacro, 2);
-            }
+            macro_map[cloneMacro.macroName].posY = cloneMacro.posY;
         }
-
     }
 }
 
@@ -985,7 +971,6 @@ void output()
 
 int main ()
 {
-    unordered_map<string, MACRO> mod_macro_map; //modified macro map
 
     read_constraint();
     read_lef_file();
@@ -1061,8 +1046,9 @@ int main ()
     }
      */
 
-    displace(macro_map, cell_map);
+
     flipping(macro_map, cell_map);
+    displace(macro_map, cell_map);
     output();
 
     //end main
@@ -1171,25 +1157,27 @@ double getWireLength(MACRO macro, const unordered_map<string, MACRO>& macroMap, 
     return sumOfLength;
 }
 
-void macroDisplace(MACRO macro, int direction)
+MACRO macroDisplace(MACRO macro, int direction)
 {
-    double micron = 1.0;
+    double dpu = 2000.0;
     if (direction == 0)//up
     {
-        macro.posY += micron;
+        macro.posY += dpu;
     }
     else if (direction == 1)//right
     {
-        macro.posX += micron;
+        macro.posX += dpu;
     }
     else if (direction == 2)//down
     {
-        macro.posY -= micron;
+        macro.posY -= dpu;
     }
     else if (direction == 3)//left
     {
-        macro.posX -= micron;
+        macro.posX -= dpu;
     }
+
+    return macro;
 }
 
 
@@ -1240,9 +1228,9 @@ bool doOverlap(Float_Point l1, Float_Point r1, Float_Point l2, Float_Point r2)
 
 bool checkOutOfBounds(const MACRO& macro)//return true if out of bounds
 {
-    if ((macro.posX / 2000) + macro.size.width > die_vector.end()->posX)
+    if (macro.posX + macro.size.width*2000 > die_vector[1].posX)
         return true;
-    if ((macro.posY / 2000) + macro.size.height > die_vector.end()->posY)
+    if (macro.posY + macro.size.height*2000 > die_vector[1].posY)
         return true;
 
     return false;
