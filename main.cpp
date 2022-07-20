@@ -8,6 +8,12 @@
 #include <sstream>
 #include <utility>
 #include <vector>
+#include <cstring>
+#include <cstdlib>
+#include <cstdio>
+#include <sys/types.h>
+#include <dirent.h>
+#include <cerrno>
 
 using namespace std;
 
@@ -143,6 +149,8 @@ unordered_map<string, PIN>::iterator pin_map_iter;
 unordered_map<string, MACRO> mod_macro_map; //modified macro map
 
 //functions
+int getdir(string dir, vector<string> &files);
+
 double getDistance(Point, Point);//return the manhattan distance
 bool checkOverlap(const MACRO&, unordered_map<string, MACRO>&);//return true if overlapped
 bool doOverlap(Float_Point, Float_Point, Float_Point, Float_Point);
@@ -153,9 +161,10 @@ double getWireLength(MACRO, const unordered_map<string, MACRO>&, unordered_map<s
 MACRO macroDisplace(MACRO, int);
 bool checkOutOfBounds(const MACRO&);//return true if out of bounds
 
-void read_constraint()
+void read_constraint(const string& fileName)
 {
-    ifstream txt_file (R"(D:\C++\case01\lefdef\case01.txt)");
+    ifstream txt_file;
+    txt_file.open(fileName);
     if (txt_file.is_open())
     {
         for (int i = 0; i < 3; ++i)
@@ -182,9 +191,10 @@ void read_constraint()
     txt_file.close();
 }
 
-void read_lef_file()
+void read_lef_file(const string& fileName)
 {
-    ifstream lef_file (R"(D:\C++\case01\lefdef\case01.lef)");
+    ifstream lef_file;
+    lef_file.open(fileName);
     if (lef_file.is_open())
     {
         vector<string> content_array;
@@ -456,9 +466,10 @@ void read_lef_file()
     lef_file.close();
 }
 
-void read_def_file()
+void read_def_file(const string& fileName)
 {
-    ifstream def_file (R"(D:\C++\case01\lefdef\case01.def)");
+    ifstream def_file;
+    def_file.open(fileName);
     if (def_file.is_open())
     {
         while(getline(def_file, in_line))
@@ -544,9 +555,10 @@ void read_def_file()
         cout << "Unable to open def file." << endl;
 }
 
-void read_mlist_file()
+void read_mlist_file(const string& fileName)
 {
-    ifstream mlist_file (R"(D:\C++\case01\lefdef\case01.mlist)");
+    ifstream mlist_file;
+    mlist_file.open(fileName);
     if (mlist_file.is_open())
     {
         while ( getline (mlist_file, in_line) )
@@ -633,9 +645,10 @@ void read_mlist_file()
         cout << "Unable to open mlist_file file";
 }
 
-void read_verilog_file()
+void read_verilog_file(string fileName)
 {
-    ifstream verilog_file (R"(D:\C++\case01\lefdef\case01.v)");
+    ifstream verilog_file;
+    verilog_file.open(fileName);
     vector<string> content_array;
     if (verilog_file.is_open())
     {
@@ -936,11 +949,22 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
     }
 }
 
-void output()
+void output(int caseN)
 {
     ofstream ofs;
+    string fileName = "case";
+    string fileType = ".dmp";
+    string zero = "0";
+    string caseNStr;
+    stringstream ss;
+    ss << caseN;
+    ss >> caseNStr;
+    if (caseN < 10)
+        caseNStr = zero + caseNStr;
+    fileName = fileName + caseNStr;
+    fileName = fileName + fileType;
 
-    ofs.open("case.dmp");
+    ofs.open(fileName);
     if (!ofs.is_open())
     {
         cout << "Failed to open file.\n";
@@ -948,7 +972,7 @@ void output()
     else
     {
         ofs << "VERSION 5.7 ;\n";
-        ofs << "DESIGN case01 ;\n";
+        ofs << "DESIGN case0" << caseN << " ;\n" ;
         ofs << "UNITS DISTANCE MICRONS 2000 ;\n\n";
         ofs << "DIEAREA ";
         for (auto p : die_vector)
@@ -971,12 +995,66 @@ void output()
 
 int main ()
 {
+    string fileName;
+    string txtFile = ".txt";
+    string lefFile = ".lef";
+    string defFile = ".def";
+    string mlistFile = ".mlist";
+    string verilogFile = ".v";
 
-    read_constraint();
-    read_lef_file();
-    read_def_file();
-    read_mlist_file();
-    read_verilog_file();
+    int caseNum = 0;
+    string caseNumStr, zero = "0" , caseStr = "case";
+    stringstream ss;
+    cout << "Please input the case number and place the needed file in the same folder." << endl;
+    cin >> caseNum;
+    ss << caseNum;
+    ss >> caseNumStr;
+    if (caseNum < 10)
+    {
+        caseNumStr = zero + caseNumStr;
+    }
+    fileName = caseStr + caseNumStr;
+    txtFile = fileName + txtFile;
+    lefFile = fileName + lefFile;
+    defFile = fileName + defFile;
+    mlistFile = fileName + mlistFile;
+    verilogFile = fileName + verilogFile;
+
+    read_constraint(txtFile);
+    read_lef_file(lefFile);
+    read_def_file(defFile);
+    read_mlist_file(mlistFile);
+    read_verilog_file(verilogFile);
+
+    displace(macro_map, cell_map);
+    flipping(macro_map, cell_map);
+
+    output(caseNum);
+    /*
+    char path_buffer[_MAX_PATH];
+    char drive[_MAX_DRIVE];
+    char dir[_MAX_DIR];
+    char fname[_MAX_FNAME];
+    char ext[_MAX_EXT];
+    _makepath( path_buffer, "D", "\\C++\\case01\\lefdef\\", "case01", "txt" );
+    cout << endl;
+    printf( "Path created with _makepath: %s\n\n", path_buffer );
+    _splitpath( path_buffer, drive, dir, fname, ext );
+    printf( "Path extracted with _splitpath:\n" );
+    printf( "  Drive: %s\n", drive );
+    printf( "  Dir: %s\n", dir );
+    printf( "  Filename: %s\n", fname );
+    printf( "  Ext: %s\n", ext );
+
+    string dirc = string(".");//資料夾路徑(絕對位址or相對位址)
+    vector<string> files = vector<string>();
+    getdir(dirc, files);
+    //輸出資料夾和檔案名稱於螢幕
+    for(auto & file : files){
+        cout << file << endl;
+    }
+    system("pause");
+     */
 
     //test output
     //txt
@@ -1047,11 +1125,22 @@ int main ()
      */
 
 
-    flipping(macro_map, cell_map);
-    displace(macro_map, cell_map);
-    output();
-
     //end main
+    return 0;
+}
+
+int getdir(string dir, vector<string> &files)
+{
+    DIR *dp;//創立資料夾指標
+    struct dirent *dirp;
+    if((dp = opendir(dir.c_str())) == NULL){
+        cout << "Error(" << errno << ") opening " << dir << endl;
+        return errno;
+    }
+    while((dirp = readdir(dp)) != NULL){//如果dirent指標非空
+        files.push_back(string(dirp->d_name));//將資料夾和檔案名放入vector
+    }
+    closedir(dp);//關閉資料夾指標
     return 0;
 }
 
