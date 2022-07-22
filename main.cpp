@@ -949,9 +949,10 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
     }
 }
 
-void output(int caseN)
+void output(string filename)
 {
     ofstream ofs;
+    /*
     string fileName = "case";
     string fileType = ".dmp";
     string zero = "0";
@@ -963,8 +964,18 @@ void output(int caseN)
         caseNStr = zero + caseNStr;
     fileName = fileName + caseNStr;
     fileName = fileName + fileType;
-
-    ofs.open(fileName);
+    */
+    string str1, str2;
+    stringstream ss1, ss2;
+    int caseN = 0;
+    ss1 << filename[4];
+    ss1 >> str1;
+    ss2 << filename[5];
+    ss2 >> str2;
+    str1 = str1 + str2;
+    ss1 << str1;
+    ss1 >> caseN;
+    ofs.open(filename);
     if (!ofs.is_open())
     {
         cout << "Failed to open file.\n";
@@ -972,7 +983,7 @@ void output(int caseN)
     else
     {
         ofs << "VERSION 5.7 ;\n";
-        ofs << "DESIGN case0" << caseN << " ;\n" ;
+        ofs << "DESIGN case" << caseN << " ;\n" ;
         ofs << "UNITS DISTANCE MICRONS 2000 ;\n\n";
         ofs << "DIEAREA ";
         for (auto p : die_vector)
@@ -993,8 +1004,10 @@ void output(int caseN)
     }
 }
 
-int main ()
+int main(int argc, char* argv[])
 {
+    // ./DMP caseOO.v caseOO.lef caseOO.def caseOO.mlist caseOO.txt caseOO.dmp 
+    /*
     string fileName;
     string txtFile = ".txt";
     string lefFile = ".lef";
@@ -1026,11 +1039,25 @@ int main ()
     read_def_file(defFile);
     read_mlist_file(mlistFile);
     read_verilog_file(verilogFile);
+    */
+    string current_exec_name = argv[0]; // Name of the current exec program
+
+    vector<string> all_args(argv, argv + argc); 
+
+    for (auto i : all_args)
+    {
+        cout << i << endl;
+    }
+    read_constraint(all_args[5]);
+    read_lef_file(all_args[2]);
+    read_def_file(all_args[3]);
+    read_mlist_file(all_args[4]);
+    read_verilog_file(all_args[1]);
 
     displace(macro_map, cell_map);
     flipping(macro_map, cell_map);
 
-    output(caseNum);
+    output(argv[6]);
     /*
     char path_buffer[_MAX_PATH];
     char drive[_MAX_DRIVE];

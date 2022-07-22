@@ -1,3 +1,6 @@
-make.exe --dry-run --always-make --keep-going --print-directory
-'make.exe' ���O�����Υ~���R�O�B�i���檺�{���Χ妸�ɡC
+make --dry-run --keep-going --print-directory
+make: Entering directory '/home/kabazoka/Documents/GitHub/ICCAD'
+make: Leaving directory '/home/kabazoka/Documents/GitHub/ICCAD'
+ 
+make: *** No targets specified and no makefile found.  Stop.
 
