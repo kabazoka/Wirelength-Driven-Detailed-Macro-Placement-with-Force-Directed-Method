@@ -896,7 +896,7 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
             }
             m_x_force += x_force;
             m_y_force += y_force;
-            mgntd = sqrt(m_x_force*m_x_force + m_y_force*m_y_force);
+            mgntd = m_x_force + m_y_force;
             //cout << sourceMacro.macroName << " / " << sourcePin.pin_name << " / (x/y) " << m_x_force << " / " << m_y_force
             //<< " / magnitude = " << mgntd << endl;
             xForce = m_x_force;
@@ -1005,7 +1005,8 @@ int main ()
     int caseNum = 0;
     string caseNumStr, zero = "0" , caseStr = "case";
     stringstream ss;
-    cout << "Please input the case number and place the needed file in the same folder." << endl;
+    cout << "Please input the case number and place the needed file in the same folder as the .exe." << endl;
+    cout << "( Needed files including: .txt, .lef, .def, .mlist, .v files )" << endl;
     cin >> caseNum;
     ss << caseNum;
     ss >> caseNumStr;
