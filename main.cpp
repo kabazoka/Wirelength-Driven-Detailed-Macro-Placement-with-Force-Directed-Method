@@ -848,7 +848,7 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
 {
     for (macroIter1 = macroMap.begin(); macroIter1 != macroMap.end() ; macroIter1++) //loop of all macros
     {
-        if (macroIter1->second.placeType == "PLACED")
+        if (macroIter1->second.placeType == "FIXED")
             continue;
         //start calculating where to displace
         MACRO sourceMacro = macroIter1 -> second;

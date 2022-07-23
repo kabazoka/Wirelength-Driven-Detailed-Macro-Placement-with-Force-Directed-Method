@@ -1,265 +1,211 @@
 make all --print-data-base --no-builtin-variables --no-builtin-rules --question
-# GNU Make 4.2.1
+make: *** No rule to make target 'all'.  Stop.
+
+# GNU Make 4.3
 # Built for x86_64-pc-linux-gnu
-# Copyright (C) 1988-2016 Free Software Foundation, Inc.
+# Copyright (C) 1988-2020 Free Software Foundation, Inc.
 # License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Fri Jul 22 12:21:33 2022
+# Make data base, printed on Sat Jul 23 15:44:57 2022
 
 # Variables
 
-# 'override' directive
-GNUMAKEFLAGS := 
-# automatic
-<D = $(patsubst %/,%,$(dir $<))
-# automatic
-?F = $(notdir $?)
 # environment
-PAPERSIZE = a4
+GDK_BACKEND = x11
 # environment
-DESKTOP_SESSION = ubuntu
+LC_ALL = C
+# environment
+NO_AT_BRIDGE = 1
+# environment
+GNOME_SHELL_SESSION_MODE = ubuntu
+# environment
+SSH_AGENT_LAUNCHER = gnome-keyring
+# environment
+GJS_DEBUG_OUTPUT = stderr
+# environment
+LOCAL_GIT_DIRECTORY = /usr/lib/github-desktop/resources/app/git
+# environment
+VSCODE_CWD = /home/kabazoka
 # default
-.SHELLFLAGS := -c
+MAKE_COMMAND := make
 # environment
-XDG_SESSION_CLASS = user
-# environment
-SNAP_COMMON = /var/snap/code/common
-# environment
-XDG_SESSION_TYPE = x11
-# automatic
-?D = $(patsubst %/,%,$(dir $?))
-# environment
-IM_CONFIG_PHASE = 1
+QT_ACCESSIBILITY = 1
 # automatic
 @D = $(patsubst %/,%,$(dir $@))
 # environment
-XAUTHORITY = /run/user/1000/gdm/Xauthority
+VSCODE_HANDLES_UNCAUGHT_ERRORS = true
+# default
+.VARIABLES := 
 # environment
-GDMSESSION = ubuntu
+PWD = /home/kabazoka/文件/GitHub/ICCAD
+# automatic
+%D = $(patsubst %/,%,$(dir $%))
 # environment
-XMODIFIERS = @im=ibus
+XDG_DATA_DIRS = /usr/share/ubuntu:/usr/local/share/:/usr/share/:/var/lib/snapd/desktop
+# automatic
+^D = $(patsubst %/,%,$(dir $^))
+# automatic
+%F = $(notdir $%)
+# environment
+VSCODE_CODE_CACHE_PATH = /home/kabazoka/.config/Code/CachedData/3b889b090b5ad5793f524b5d1d39fda662b96a2a
+# environment
+LANG = C
+# environment
+XAUTHORITY = /run/user/1000/.mutter-Xwaylandauth.IWOBP1
+# default
+.LOADED := 
+# default
+.INCLUDE_DIRS = /usr/local/include /usr/include /usr/include
 # makefile
-CURDIR := /home/kabazoka/Documents/GitHub/ICCAD
+MAKEFLAGS = pqrR
 # makefile
-SHELL = /bin/sh
+CURDIR := /home/kabazoka/文件/GitHub/ICCAD
 # environment
-SNAP_DATA = /var/snap/code/102
+APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = 1
+# automatic
+*D = $(patsubst %/,%,$(dir $*))
 # environment
-VSCODE_NLS_CONFIG = {"locale":"zh-tw","availableLanguages":{"*":"zh-tw"},"_languagePackId":"a0b772d00248b7f5c117cab9736199be.zh-tw","_translationsConfigFile":"/home/kabazoka/.config/Code/clp/a0b772d00248b7f5c117cab9736199be.zh-tw/tcf.json","_cacheRoot":"/home/kabazoka/.config/Code/clp/a0b772d00248b7f5c117cab9736199be.zh-tw","_resolvedLanguagePackCoreLocation":"/home/kabazoka/.config/Code/clp/a0b772d00248b7f5c117cab9736199be.zh-tw/3b889b090b5ad5793f524b5d1d39fda662b96a2a","_corruptedFile":"/home/kabazoka/.config/Code/clp/a0b772d00248b7f5c117cab9736199be.zh-tw/corrupted.info","_languagePackSupport":true}
+MFLAGS = -pqrR
 # environment
-JOURNAL_STREAM = 8:52874
+SSH_AUTH_SOCK = /run/user/1000/keyring/ssh
+# default
+.SHELLFLAGS := -c
+# environment
+WAYLAND_DISPLAY = wayland-0
 # environment
 XDG_CONFIG_DIRS = /etc/xdg/xdg-ubuntu:/etc/xdg
+# automatic
++D = $(patsubst %/,%,$(dir $+))
 # environment
-SNAP_INSTANCE_NAME = code
-# environment
-SNAP_ARCH = amd64
+XDG_SESSION_DESKTOP = ubuntu
 # makefile
 MAKEFILE_LIST := 
 # automatic
 @F = $(notdir $@)
 # environment
-GIO_LAUNCHED_DESKTOP_FILE = /usr/share/applications/github-desktop.desktop
+VSCODE_PID = 31751
 # environment
-USERNAME = kabazoka
+XDG_SESSION_TYPE = wayland
+# automatic
+?D = $(patsubst %/,%,$(dir $?))
 # environment
-MAKELEVEL := 0
+SESSION_MANAGER = local/kabazoka-desktop:@/tmp/.ICE-unix/1415,unix/kabazoka-desktop:/tmp/.ICE-unix/1415
+# automatic
+*F = $(notdir $*)
 # environment
-MANDATORY_PATH = /usr/share/gconf/ubuntu.mandatory.path
-# environment
-XDG_DATA_DIRS = /usr/share/ubuntu:/usr/local/share/:/usr/share/:/var/lib/snapd/desktop
+CHROME_DESKTOP = code-url-handler.desktop
 # environment
 DBUS_SESSION_BUS_ADDRESS = unix:path=/run/user/1000/bus
+# automatic
+<D = $(patsubst %/,%,$(dir $<))
 # environment
-MANAGERPID = 1751
+VSCODE_NLS_CONFIG = {"locale":"zh-tw","availableLanguages":{"*":"zh-tw"},"_languagePackId":"a0b772d00248b7f5c117cab9736199be.zh-tw","_translationsConfigFile":"/home/kabazoka/.config/Code/clp/a0b772d00248b7f5c117cab9736199be.zh-tw/tcf.json","_cacheRoot":"/home/kabazoka/.config/Code/clp/a0b772d00248b7f5c117cab9736199be.zh-tw","_resolvedLanguagePackCoreLocation":"/home/kabazoka/.config/Code/clp/a0b772d00248b7f5c117cab9736199be.zh-tw/3b889b090b5ad5793f524b5d1d39fda662b96a2a","_corruptedFile":"/home/kabazoka/.config/Code/clp/a0b772d00248b7f5c117cab9736199be.zh-tw/corrupted.info","_languagePackSupport":true}
 # environment
-LC_NAME = zh_TW.UTF-8
-# environment
-VSCODE_CWD = /home/kabazoka
-# environment
-GSETTINGS_SCHEMA_DIR = /snap/code/102/usr/share/glib-2.0/schemas
+SWIG_PATH = /home/kabazoka/library/bin
 # default
 MAKE_HOST := x86_64-pc-linux-gnu
 # environment
-PATH = /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
-# environment
-GPG_AGENT_INFO = /run/user/1000/gnupg/S.gpg-agent:0:1
-# environment
-SESSION_MANAGER = local/kabazoka-ZenBook-UX431FAC-UX431FA:@/tmp/.ICE-unix/1975,unix/kabazoka-ZenBook-UX431FAC-UX431FA:/tmp/.ICE-unix/1975
-# environment
-XDG_RUNTIME_DIR = /run/user/1000
-# environment
-GDK_PIXBUF_MODULE_FILE = /home/kabazoka/snap/code/common/.cache/gdk-pixbuf-loaders.cache
-# environment
-SNAP = /snap/code/102
-# environment
-SNAP_VERSION = 3b889b09
-# environment
-XDG_MENU_PREFIX = gnome-
-# environment
-DISABLE_WAYLAND = 1
-# environment
-ELECTRON_RUN_AS_NODE = 1
-# environment
-INVOCATION_ID = bf3d4c03ddb8475d92f158d2f3f4141f
-# environment
-GDK_PIXBUF_MODULEDIR = /snap/code/102/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders
+GNOME_DESKTOP_SESSION_ID = this-is-deprecated
+# makefile
+SHELL = /bin/sh
 # default
-.FEATURES := target-specific order-only second-expansion else-if shortest-stem undefine oneshell archives jobserver output-sync check-symlink load
+MAKECMDGOALS := all
 # environment
-XDG_SESSION_DESKTOP = ubuntu
+XMODIFIERS = @im=ibus
 # environment
-SSH_AUTH_SOCK = /run/user/1000/keyring/ssh
+GJS_DEBUG_TOPICS = JS ERROR;JS LOG
 # environment
-GIO_LAUNCHED_DESKTOP_FILE_PID = 32197
+SHLVL = 0
+# environment
+MAKELEVEL := 0
+# default
+MAKE = $(MAKE_COMMAND)
+# environment
+PATH = /home/kabazoka/.local/bin:/home/kabazoka/library/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin
+# default
+MAKEFILES := 
+# environment
+LANGUAGE = zh_TW:zh
 # automatic
-%F = $(notdir $%)
+^F = $(notdir $^)
+# environment
+INVOCATION_ID = 6db0559ab70544999bb52ca44a2b0252
+# environment
+USERNAME = kabazoka
+# environment
+GNOME_SETUP_DISPLAY = :1
+# automatic
+?F = $(notdir $?)
+# environment
+XDG_CURRENT_DESKTOP = Unity
+# automatic
++F = $(notdir $+)
+# environment
+DESKTOP_SESSION = ubuntu
+# environment
+ORIGINAL_XDG_CURRENT_DESKTOP = Unity
+# 'override' directive
+GNUMAKEFLAGS := 
+# environment
+LOGNAME = kabazoka
+# environment
+GIO_LAUNCHED_DESKTOP_FILE = /usr/share/applications/github-desktop.desktop
+# makefile
+.DEFAULT_GOAL := 
+# environment
+SYSTEMD_EXEC_PID = 1453
 # environment
 DISPLAY = :0
 # environment
-SNAP_INSTANCE_KEY = 
-# environment
-PWD = /home/kabazoka/Documents/GitHub/ICCAD
-# default
-.LOADED := 
-# environment
-SSH_AGENT_PID = 1944
-# environment
-ORIGINAL_XDG_CURRENT_DESKTOP = Unity
+USER = kabazoka
 # environment
 GTK_MODULES = gail:atk-bridge
+# default
+MAKE_VERSION := 4.3
+# environment
+MANAGERPID = 1156
+# environment
+GIO_LAUNCHED_DESKTOP_FILE_PID = 6308
+# environment
+_ = /usr/bin/gnome-session
+# environment
+XDG_RUNTIME_DIR = /run/user/1000
+# environment
+JOURNAL_STREAM = 8:33926
+# environment
+XDG_SESSION_CLASS = user
 # environment
 VSCODE_AMD_ENTRYPOINT = vs/workbench/api/node/extensionHostProcess
 # environment
 HOME = /home/kabazoka
 # environment
-VSCODE_CLI = 1
-# environment
-VSCODE_CODE_CACHE_PATH = /home/kabazoka/.config/Code/CachedData/3b889b090b5ad5793f524b5d1d39fda662b96a2a
-# environment
-LOGNAME = kabazoka
-# environment
-APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = 1
-# environment
-SNAP_LIBRARY_PATH = /var/lib/snapd/lib/gl:/var/lib/snapd/lib/gl32:/var/lib/snapd/void
-# environment
-SNAP_CONTEXT = MNL-25krAAjUmpe9loI-AvXa2pS9zWdfRO43oAPOeukxs1u99_rn
-# automatic
-+F = $(notdir $+)
-# environment
-ELECTRON_NO_ATTACH_CONSOLE = 1
-# environment
-SNAP_USER_COMMON = /home/kabazoka/snap/code/common
-# environment
-VSCODE_HANDLES_UNCAUGHT_ERRORS = true
-# environment
-GNOME_DESKTOP_SESSION_ID = this-is-deprecated
-# automatic
-^D = $(patsubst %/,%,$(dir $^))
-# environment
-LC_TIME = zh_TW.UTF-8
-# environment
-SNAP_REAL_HOME = /home/kabazoka
-# default
-MAKE = $(MAKE_COMMAND)
-# default
-MAKECMDGOALS := all
-# environment
 QT_IM_MODULE = ibus
 # environment
-SNAP_USER_DATA = /home/kabazoka/snap/code/102
-# environment
-SHLVL = 0
-# environment
-LOCAL_GIT_DIRECTORY = /usr/lib/github-desktop/resources/app/git
-# environment
-GNOME_SHELL_SESSION_MODE = ubuntu
-# default
-MAKE_VERSION := 4.2.1
-# environment
-USER = kabazoka
-# environment
-SNAP_REVISION = 102
-# environment
-LC_MONETARY = zh_TW.UTF-8
-# makefile
-.DEFAULT_GOAL := 
-# environment
-XDG_CURRENT_DESKTOP = Unity
-# automatic
-%D = $(patsubst %/,%,$(dir $%))
-# environment
-LC_TELEPHONE = zh_TW.UTF-8
-# default
-MAKE_COMMAND := make
-# default
-.VARIABLES := 
-# automatic
-*F = $(notdir $*)
-# environment
-LANGUAGE = zh_TW:en_US:en
+ELECTRON_RUN_AS_NODE = 1
 # environment
 VSCODE_IPC_HOOK = /run/user/1000/vscode-e48e582d-1.69.2-main.sock
-# makefile
-MAKEFLAGS = pqrR
 # environment
-MFLAGS = -pqrR
-# automatic
-*D = $(patsubst %/,%,$(dir $*))
-# automatic
-+D = $(patsubst %/,%,$(dir $+))
-# environment
-GDK_BACKEND = x11
-# environment
-LC_PAPER = zh_TW.UTF-8
-# environment
-LC_IDENTIFICATION = zh_TW.UTF-8
-# environment
-QT_ACCESSIBILITY = 1
-# environment
-DEFAULTS_PATH = /usr/share/gconf/ubuntu.default.path
+IM_CONFIG_PHASE = 1
 # default
-MAKEFILES := 
-# environment
-SNAP_COOKIE = MNL-25krAAjUmpe9loI-AvXa2pS9zWdfRO43oAPOeukxs1u99_rn
-# environment
-LC_NUMERIC = zh_TW.UTF-8
+.RECIPEPREFIX := 
 # automatic
 <F = $(notdir $<)
-# environment
-LC_MEASUREMENT = zh_TW.UTF-8
-# environment
-SNAP_NAME = code
-# environment
-LC_ALL = C
-# environment
-GJS_DEBUG_TOPICS = JS ERROR;JS LOG
-# automatic
-^F = $(notdir $^)
 # default
 SUFFIXES := 
 # environment
-SNAP_REEXEC = 
+VSCODE_CLI = 1
 # environment
-CHROME_DESKTOP = code-url-handler.desktop
-# environment
-WINDOWPATH = 2
+ELECTRON_NO_ATTACH_CONSOLE = 1
 # default
-.INCLUDE_DIRS = /usr/include /usr/local/include /usr/include
+.FEATURES := target-specific order-only second-expansion else-if shortest-stem undefine oneshell nocomment grouped-target extra-prereqs archives jobserver output-sync check-symlink load
 # environment
-GJS_DEBUG_OUTPUT = stderr
-# default
-.RECIPEPREFIX := 
+XDG_MENU_PREFIX = gnome-
 # environment
-LC_ADDRESS = zh_TW.UTF-8
-# environment
-LANG = C
-# environment
-VSCODE_PID = 33068
+GDMSESSION = ubuntu
 # variable set hash-table stats:
-# Load=124/1024=12%, Rehash=0, Collisions=21/146=14%
+# Load=96/1024=9%, Rehash=0, Collisions=2/123=2%
 
 # Pattern-specific Variable Values
 
@@ -267,7 +213,7 @@ VSCODE_PID = 33068
 
 # Directories
 
-# . (device 2052, inode 2242801): 12 files, no impossibilities.
+# . (device 2069, inode 20580347): 12 files, no impossibilities.
 
 # 12 files, no impossibilities in 1 directories.
 
@@ -278,13 +224,6 @@ VSCODE_PID = 33068
 # Files
 
 # Not a target:
-all:
-#  Command line target.
-#  Implicit rule search has been done.
-#  File does not exist.
-#  File has not been updated.
-
-# Not a target:
 Makefile:
 #  Implicit rule search has been done.
 #  File does not exist.
@@ -292,20 +231,24 @@ Makefile:
 #  Failed to be updated.
 
 # Not a target:
+.DEFAULT:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+all:
+#  Command line target.
+#  Implicit rule search has been done.
+#  File does not exist.
+#  File has not been updated.
+
+# Not a target:
 makefile:
 #  Implicit rule search has been done.
 #  File does not exist.
 #  File has been updated.
 #  Failed to be updated.
-
-# Not a target:
- 
-make: *** No rule to make target 'all'.  Stop.
-
-.DEFAULT:
-#  Implicit rule search has not been done.
-#  Modification time never checked.
-#  File has not been updated.
 
 # Not a target:
 GNUmakefile:
@@ -327,7 +270,7 @@ GNUmakefile:
 
 # strcache performance: lookups = 23 / hit rate = 13%
 # hash-table stats:
-# Load=20/8192=0%, Rehash=0, Collisions=1/23=4%
-# Finished Make data base on Fri Jul 22 12:21:33 2022
+# Load=20/8192=0%, Rehash=0, Collisions=0/23=0%
+# Finished Make data base on Sat Jul 23 15:44:57 2022
 
  

@@ -1,6 +1,6 @@
-make --dry-run --keep-going --print-directory
-make: Entering directory '/home/kabazoka/Documents/GitHub/ICCAD'
-make: Leaving directory '/home/kabazoka/Documents/GitHub/ICCAD'
+make --dry-run --always-make --keep-going --print-directory
+make: Entering directory '/home/kabazoka/文件/GitHub/ICCAD'
+make: Leaving directory '/home/kabazoka/文件/GitHub/ICCAD'
  
 make: *** No targets specified and no makefile found.  Stop.
 
