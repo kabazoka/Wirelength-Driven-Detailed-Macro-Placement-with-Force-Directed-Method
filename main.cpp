@@ -645,7 +645,7 @@ void read_mlist_file(const string& fileName)
         cout << "Unable to open mlist_file file";
 }
 
-void read_verilog_file(string fileName)
+void read_verilog_file(const string& fileName)
 {
     ifstream verilog_file;
     verilog_file.open(fileName);
@@ -848,6 +848,8 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
 {
     for (macroIter1 = macroMap.begin(); macroIter1 != macroMap.end() ; macroIter1++) //loop of all macros
     {
+        if (macroIter1->second.placeType == "PLACED")
+            continue;
         //start calculating where to displace
         MACRO sourceMacro = macroIter1 -> second;
         MACRO& cloneMacro = sourceMacro;
@@ -906,8 +908,8 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
 
         //***finished calculation and start displacement***
 
-        xForce = 10 * (xForce / magnitude);
-        yForce = 10 * (yForce / magnitude);
+        xForce = constraint.maximum_displacement * (xForce / magnitude);
+        yForce = constraint.maximum_displacement * (yForce / magnitude);
         //magnitude = sqrt(xForce*xForce + yForce*yForce);
         //cout << sourceMacro.macroName << " " << xForce << " " << yForce << " / " << magnitude << endl;
         for (int i = 0; i < floor(xForce); ++i) // displace x position recursively
