@@ -6,15 +6,16 @@
 #include <algorithm>
 #include <cmath>
 #include <sstream>
-#include <utility>
 #include <vector>
+#include <utility>
+/*
 #include <cstring>
 #include <cstdlib>
 #include <cstdio>
 #include <sys/types.h>
 #include <dirent.h>
 #include <cerrno>
-
+*/
 using namespace std;
 
 
@@ -1158,7 +1159,7 @@ int main(int argc, char* argv[])
     //end main
     return 0;
 }
-
+/*
 int getdir(string dir, vector<string> &files)
 {
     DIR *dp;//創立資料夾指標
@@ -1173,7 +1174,7 @@ int getdir(string dir, vector<string> &files)
     closedir(dp);//關閉資料夾指標
     return 0;
 }
-
+*/
 double getDistance(Point A, Point B)
 {
     double distance = abs(A.posX - B.posX) + abs(A.posY - B.posY);
