@@ -1047,7 +1047,7 @@ int main(int argc, char* argv[])
 
     vector<string> all_args(argv, argv + argc); 
 
-    for (auto i : all_args)
+    for (const auto& i : all_args)
     {
         cout << i << endl;
     }

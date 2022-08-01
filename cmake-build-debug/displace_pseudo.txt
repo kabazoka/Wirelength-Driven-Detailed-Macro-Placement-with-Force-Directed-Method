@@ -1,11 +1,9 @@
 void displacement
 {
-    for(loop of all macros randomly)
-    {
+    for(loop through all macros randomly){
         if(macro == fixed)
             continue;
-        for(all pins in a macro)
-        {
+        for(all pins in a macro){
             get the pin's connected wire;
             calculate the wire's direction and distance as resulting force;
             whole_macro_force += force;
@@ -14,8 +12,7 @@ void displacement
         force.x = constraint.displace * (force.x / forceSum)
         force.y = constraint.displace * (force.y / forceSum)
         //MOVE_MACRO(force):
-        for(floor(force.x))
-        {
+        for(floor(force.x)){
             make a clone macro as the source macro
             try to move clone macro 1 micron;
             if(CHECK OVERLAP)
@@ -24,8 +21,7 @@ void displacement
                 break;
             move the real macro 1 micron;
         }
-        for(floor(force.y))
-        {
+        for(floor(force.y)) {
             make a clone macro as the source macro
             try to move clone macro 1 micron;
             if(CHECK OVERLAP)
@@ -34,7 +30,5 @@ void displacement
                 break;
             move the real macro 1 micron;
         }
-
     }
-
 }
