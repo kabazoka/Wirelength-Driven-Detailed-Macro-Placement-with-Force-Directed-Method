@@ -1033,16 +1033,18 @@ int main(int argc, char* argv[])
     defFile = fileName + defFile;
     mlistFile = fileName + mlistFile;
     verilogFile = fileName + verilogFile;
-
-    read_constraint(txtFile);
-    read_lef_file(lefFile);
-    read_def_file(defFile);
-    read_mlist_file(mlistFile);
-    read_verilog_file(verilogFile);
     */
+    read_constraint("case02.txt");
+    read_lef_file("case02.lef");
+    read_def_file("case02.def");
+    read_mlist_file("case02.mlist");
+    read_verilog_file("case02.v");
+
+
+    /*
     string current_exec_name = argv[0]; // Name of the current exec program
 
-    vector<string> all_args(argv, argv + argc); 
+    vector<string> all_args(argv, argv + argc);
 
     for (const auto& i : all_args)
     {
@@ -1054,10 +1056,12 @@ int main(int argc, char* argv[])
     read_mlist_file(all_args[4]);
     read_verilog_file(all_args[1]);
 
+     */
+
     displace(macro_map, cell_map);
     flipping(macro_map, cell_map);
 
-    output(argv[6]);
+    output("case02.dmp");
     /*
     char path_buffer[_MAX_PATH];
     char drive[_MAX_DRIVE];
@@ -1314,7 +1318,7 @@ bool checkOverlap(const MACRO& macro, unordered_map<string, MACRO>& macroMap)//r
         l2.posX = macroIter2->second.posX;
         l2.posY = macroIter2->second.posY;
         r2.posX = macroIter2->second.posX + macroIter2->second.size.width;
-        r2.posY = macroIter2->second.posX + macroIter2->second.size.height;
+        r2.posY = macroIter2->second.posY + macroIter2->second.size.height;
         if(doOverlap(l1, r1, l2, r2))
             overlapped = true;
     }
@@ -1352,3 +1356,4 @@ bool checkOutOfBounds(const MACRO& macro)//return true if out of bounds
 
     return false;
 }
+
