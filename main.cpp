@@ -861,8 +861,7 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
         for (pin_map_iter = sourceMacro.pin_map.begin(); pin_map_iter != sourceMacro.pin_map.end() ; pin_map_iter++) //loop of all pins in a macro
         {
             Point sourceP{}, targetP{};
-            double x_force{}, y_force{}, mgntd{}, m_x_force{}, m_y_force{};
-            double distance{};
+            double x_force{}, y_force{};
             PIN sourcePin = pin_map_iter->second;
             string wireName = sourcePin.connected_wire; //get the pin's connected wire
             vector<PIN_INDEX> pinVec = netlistMap[wireName];
@@ -870,6 +869,8 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
             {
                 PIN_INDEX pinIndex = i;
                 double tmpX{}, tmpY{};
+                tmpX = sourceMacro.posX / 2000;
+                tmpY = sourceMacro.posY / 2000;
                 sourceP.posX = tmpX + sourcePin.relativePoint.posX;
                 sourceP.posY = tmpY + sourcePin.relativePoint.posY;
 
@@ -893,18 +894,14 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
                     targetP.posY = tmpY + targetPin.relativePoint.posY;
                 }
                 //force
-                distance += getDistance(sourceP, targetP);
                 x_force += targetP.posX - sourceP.posX;
                 y_force += targetP.posY - sourceP.posY;
             }
-            m_x_force += x_force;
-            m_y_force += y_force;
-            mgntd = m_x_force + m_y_force;
+            xForce += x_force;
+            yForce += y_force;
             //cout << sourceMacro.macroName << " / " << sourcePin.pin_name << " / (x/y) " << m_x_force << " / " << m_y_force
             //<< " / magnitude = " << mgntd << endl;
-            xForce = m_x_force;
-            yForce = m_y_force;
-            magnitude = mgntd;
+            magnitude = abs(xForce) + abs(yForce);
         }
 
         //***finished calculation and start displacement***
@@ -912,7 +909,7 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
         xForce = constraint.maximum_displacement * (xForce / magnitude);
         yForce = constraint.maximum_displacement * (yForce / magnitude);
         //magnitude = sqrt(xForce*xForce + yForce*yForce);
-        //cout << sourceMacro.macroName << " " << xForce << " " << yForce << " / " << magnitude << endl;
+        cout << sourceMacro.macroName << " " << xForce << " " << yForce << " / " << magnitude << endl;
         for (int i = 0; i < floor(xForce); ++i) // displace x position recursively
         {
             if (xForce > 0)
