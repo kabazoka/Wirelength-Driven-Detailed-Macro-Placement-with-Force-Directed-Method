@@ -954,7 +954,7 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
     int overlapCount = 0, boundCount = 0;
     cout << "# Displacement run#1..." << endl;
     FORCE remainForce, nextRoundForce;
-    for (const auto& i : forceMap)
+    for (auto i : forceMap)
     {
         bool validMove = true;
         MACRO& sourceMacro = macroMap[i.second.macroName];
@@ -1008,6 +1008,8 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
                 macro_map[cloneMacro.macroName].posY = cloneMacro.posY;
             remainForce.yForce -= 1;
         }
+        i.second.force.xForce = nextRoundForce.xForce;
+        i.second.force.yForce = nextRoundForce.yForce;
     }
     cout << "# Overlap occurred " << overlapCount << " times." << endl;
     cout << "# Out of bounds occurred " << boundCount << " times." << endl;
