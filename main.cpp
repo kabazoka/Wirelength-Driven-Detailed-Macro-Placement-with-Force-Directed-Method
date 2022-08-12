@@ -106,6 +106,7 @@ struct MACRO
     string placeType;
     double posX{};
     double posY{};
+    Point originPos;
     string orient;
     //lef info
     Dimension size{};
@@ -128,6 +129,7 @@ struct FORCE_INFO
 {
     FORCE force;
     string macroName;
+    FORCE remainForce;
 };
 
 //variables
@@ -885,6 +887,8 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
         if (macroIter1->second.placeType == "FIXED")
             continue;
         //start calculating where to displace
+        macroIter1->second.originPos.posX = macroIter1->second.posX;
+        macroIter1->second.originPos.posY = macroIter1->second.posY;
         MACRO sourceMacro = macroIter1 -> second;
         STD_CELL targetCell;
         unordered_map<string, MACRO>::iterator macroIter2;
@@ -904,6 +908,8 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
             {
                 PIN_INDEX pinIndex = i;
                 double tmpX{}, tmpY{};
+                tmpX = sourceMacro.posX / 2000;
+                tmpY = sourceMacro.posY / 2000;
                 sourceP.posX = tmpX + sourcePin.relativePoint.posX;
                 sourceP.posY = tmpY + sourcePin.relativePoint.posY;
 
@@ -933,7 +939,7 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
             }
             m_x_force += x_force;
             m_y_force += y_force;
-            mgntd = m_x_force + m_y_force;
+            mgntd = abs(m_x_force) + abs(m_y_force);
             //cout << sourceMacro.macroName << " / " << sourcePin.pin_name << " / (x/y) " << m_x_force << " / " << m_y_force
             //<< " / magnitude = " << mgntd << endl;
             xForce = m_x_force;
@@ -942,8 +948,61 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
         }
         xForce = constraint.maximum_displacement * (xForce / magnitude);
         yForce = constraint.maximum_displacement * (yForce / magnitude);
-        force.xForce = floor(xForce);
-        force.yForce = floor(yForce);
+        //cout << sourceMacro.macroName << " " << xForce << " " << yForce << endl;
+        force.xForce = xForce;
+        force.yForce = yForce;
+        if (force.xForce < 0 && force.yForce < 0)
+        {
+            if (abs(force.xForce - ceil(force.xForce)) < abs(force.yForce - ceil(force.yForce)))
+            {
+                force.xForce = ceil(force.xForce);
+                force.yForce = floor(force.yForce);
+            }
+            else
+            {
+                force.xForce = floor(force.xForce);
+                force.yForce = ceil(force.yForce);
+            }
+        }
+        else if(force.xForce > 0 && force.yForce < 0)
+        {
+            if (force.xForce - floor(force.xForce) > abs(force.yForce - ceil(force.yForce)))
+            {
+                force.xForce = ceil(force.xForce);
+                force.yForce = ceil(force.yForce);
+            }
+            else
+            {
+                force.xForce = floor(force.xForce);
+                force.yForce = floor(force.yForce);
+            }
+        }
+        else if(force.xForce < 0 && force.yForce > 0)
+        {
+            if (abs(force.xForce - ceil(force.xForce)) < force.yForce - floor(force.yForce))
+            {
+                force.xForce = ceil(force.xForce);
+                force.yForce = ceil(force.yForce);
+            }
+            else
+            {
+                force.xForce = floor(force.xForce);
+                force.yForce = floor(force.yForce);
+            }
+        }
+        else
+        {
+            if (force.xForce - floor(force.xForce) < force.yForce - floor(force.yForce))
+            {
+                force.xForce = floor(force.xForce);
+                force.yForce = ceil(force.yForce);
+            }
+            else
+            {
+                force.xForce = ceil(force.xForce);
+                force.yForce = floor(force.yForce);
+            }
+        }
         forceInfo.force = force;
         forceInfo.macroName = macroIter1->second.macroName;
         //cout << sourceMacro.macroName << " " << xForce << " " << yForce << " / " << magnitude << endl;
@@ -954,14 +1013,17 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
     int overlapCount = 0, boundCount = 0;
     cout << "# Displacement run#1..." << endl;
     FORCE remainForce, nextRoundForce;
-    for (auto i : forceMap)
+    for (auto& i : forceMap)
     {
-        bool validMove = true;
+        //bool xValidMove = true, yValidMove = true;
         MACRO& sourceMacro = macroMap[i.second.macroName];
-        MACRO& cloneMacro = sourceMacro;
+        MACRO cloneMacro = sourceMacro;
+        cout << "# Displacing " << sourceMacro.macroName << endl;
         remainForce.xForce = i.second.force.xForce;
         remainForce.yForce = i.second.force.yForce;
-        while(remainForce.xForce > 0 || remainForce.yForce > 0)
+        //cout << remainForce.xForce << " " << remainForce.yForce << endl;
+        /*
+        while(abs(remainForce.xForce) > 0)
         {
             //movement on x-axis
             if (i.second.force.xForce > 0)
@@ -973,18 +1035,29 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
                 nextRoundForce.xForce = remainForce.xForce;
                 remainForce.xForce = 0;
                 overlapCount++;
-                validMove = false;
+                cloneMacro = sourceMacro;
+                break;
             }
-            if (checkOutOfBounds(cloneMacro))
+            else if (checkOutOfBounds(cloneMacro))
             {
                 nextRoundForce.xForce = remainForce.xForce;
                 remainForce.xForce = 0;
                 boundCount++;
-                validMove = false;
+                cloneMacro = sourceMacro;
+                break;
             }
-            if (validMove)
+            else
+            {
                 macro_map[cloneMacro.macroName].posX = cloneMacro.posX;
-            remainForce.xForce -= 1;
+                if (remainForce.xForce > 0)
+                    remainForce.xForce -= 1;
+                else
+                    remainForce.xForce += 1;
+            }
+        }
+        cout << "Finished moving on x-axis." << endl;
+        while(abs(remainForce.yForce) > 0)
+        {
             //movement on y-axis
             if (i.second.force.yForce > 0)
                 cloneMacro = macroDisplace(cloneMacro, 0);
@@ -995,36 +1068,108 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
                 nextRoundForce.yForce = remainForce.yForce;
                 remainForce.yForce = 0;
                 overlapCount++;
-                validMove = false;
+                cloneMacro = sourceMacro;
+                break;
             }
-            if (checkOutOfBounds(cloneMacro))
+            else if (checkOutOfBounds(cloneMacro))
             {
                 nextRoundForce.yForce = remainForce.yForce;
                 remainForce.yForce = 0;
                 boundCount++;
-                validMove = false;
+                cloneMacro = sourceMacro;
+                break;
             }
-            if (validMove)
+            else
+            {
                 macro_map[cloneMacro.macroName].posY = cloneMacro.posY;
-            remainForce.yForce -= 1;
+                if (remainForce.yForce > 0)
+                    remainForce.yForce -= 1;
+                else
+                    remainForce.yForce += 1;
+            }
         }
-        i.second.force.xForce = nextRoundForce.xForce;
-        i.second.force.yForce = nextRoundForce.yForce;
+        cout << "Finished moving on y-axis." << endl;
+        i.second.remainForce.xForce = nextRoundForce.xForce;
+        i.second.remainForce.yForce = nextRoundForce.yForce;
+         */
+        bool validMoveX = true, validMoveY = true;
+        while(remainForce.xForce != 0 || remainForce.yForce != 0)
+        {
+            if (remainForce.xForce != 0) {//movement on x-axis
+                if (i.second.force.xForce > 0)
+                    cloneMacro = macroDisplace(cloneMacro, 1);
+                else
+                    cloneMacro = macroDisplace(cloneMacro, 3);
+                if (checkOverlap(cloneMacro, macroMap))
+                {
+                    nextRoundForce.xForce = remainForce.xForce;
+                    remainForce.xForce = 0;
+                    overlapCount++;
+                    cloneMacro.posX = sourceMacro.posX;
+                }
+                else if (checkOutOfBounds(cloneMacro))
+                {
+                    nextRoundForce.xForce = remainForce.xForce;
+                    remainForce.xForce = 0;
+                    boundCount++;
+                    cloneMacro.posX = sourceMacro.posX;
+                }
+                else
+                {
+                    macro_map[cloneMacro.macroName].posX = cloneMacro.posX;
+                    if (remainForce.xForce > 0)
+                        remainForce.xForce -= 1;
+                    else if (remainForce.xForce < 0)
+                        remainForce.xForce += 1;
+                }
+            }
+            if (remainForce.yForce != 0)
+            {
+                //movement on y-axis
+                if (remainForce.yForce > 0)
+                    cloneMacro = macroDisplace(cloneMacro, 0);
+                else
+                    cloneMacro = macroDisplace(cloneMacro, 2);
+                if (checkOverlap(cloneMacro, macroMap))
+                {
+                    nextRoundForce.yForce = remainForce.yForce;
+                    remainForce.yForce = 0;
+                    overlapCount++;
+                    cloneMacro.posY = sourceMacro.posY;
+                }
+                else if (checkOutOfBounds(cloneMacro))
+                {
+                    nextRoundForce.yForce = remainForce.yForce;
+                    remainForce.yForce = 0;
+                    boundCount++;
+                    cloneMacro.posY = sourceMacro.posY;
+                }
+                else
+                {
+                    macro_map[cloneMacro.macroName].posY = cloneMacro.posY;
+                    if (remainForce.yForce > 0)
+                        remainForce.yForce -= 1;
+                    else if (remainForce.yForce < 0)
+                        remainForce.yForce += 1;
+                }
+            }
+        }
     }
     cout << "# Overlap occurred " << overlapCount << " times." << endl;
     cout << "# Out of bounds occurred " << boundCount << " times." << endl;
+    /*
     overlapCount = 0;
     boundCount = 0;
     cout << "\n# Displacement run#2..." << endl;
-    remainForce = nextRoundForce;
     for (const auto& i : forceMap)
     {
-        bool validMove = true;
+        //bool xValidMove = true, yValidMove = true;
         MACRO& sourceMacro = macroMap[i.second.macroName];
-        MACRO& cloneMacro = sourceMacro;
-        remainForce.xForce = i.second.force.xForce;
-        remainForce.yForce = i.second.force.yForce;
-        while(remainForce.xForce > 0 || remainForce.yForce > 0)
+        MACRO cloneMacro = sourceMacro;
+        cout << "Displacing " << sourceMacro.macroName << endl;
+        remainForce.xForce = i.second.remainForce.xForce;
+        remainForce.yForce = i.second.remainForce.yForce;
+        while(remainForce.xForce > 0)
         {
             //movement on x-axis
             if (i.second.force.xForce > 0)
@@ -1036,18 +1181,26 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
                 nextRoundForce.xForce = remainForce.xForce;
                 remainForce.xForce = 0;
                 overlapCount++;
-                validMove = false;
+                cloneMacro = sourceMacro;
+                break;
             }
-            if (checkOutOfBounds(cloneMacro))
+            else if (checkOutOfBounds(cloneMacro))
             {
                 nextRoundForce.xForce = remainForce.xForce;
                 remainForce.xForce = 0;
                 boundCount++;
-                validMove = false;
+                cloneMacro = sourceMacro;
+                break;
             }
-            if (validMove)
+            else
+            {
                 macro_map[cloneMacro.macroName].posX = cloneMacro.posX;
-            remainForce.xForce -= 1;
+                remainForce.xForce -= 1;
+            }
+        }
+        cout << "Finished moving on x-axis." << endl;
+        while(remainForce.yForce > 0)
+        {
             //movement on y-axis
             if (i.second.force.yForce > 0)
                 cloneMacro = macroDisplace(cloneMacro, 0);
@@ -1058,23 +1211,45 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
                 nextRoundForce.yForce = remainForce.yForce;
                 remainForce.yForce = 0;
                 overlapCount++;
-                validMove = false;
+                cloneMacro = sourceMacro;
+                break;
             }
-            if (checkOutOfBounds(cloneMacro))
+            else if (checkOutOfBounds(cloneMacro))
             {
                 nextRoundForce.yForce = remainForce.yForce;
                 remainForce.yForce = 0;
                 boundCount++;
-                validMove = false;
+                cloneMacro = sourceMacro;
+                break;
             }
-            if (validMove)
+            else
+            {
                 macro_map[cloneMacro.macroName].posY = cloneMacro.posY;
-            remainForce.yForce -= 1;
+                remainForce.yForce -= 1;
+            }
         }
+        cout << "Finished moving on y-axis." << endl;
     }
     cout << "# Overlap occurred " << overlapCount << " times." << endl;
     cout << "# Out of bounds occurred " << boundCount << " times." << endl;
+
+     */
+
     cout << "# Displacement completed.\n" << endl;
+}
+
+void calculateDisplaceDistance(unordered_map<string, MACRO>& macroMap)
+{
+    Point p1{}, p2{};
+    for (macroIter1 = macroMap.begin(); macroIter1 != macroMap.end() ; macroIter1++) //loop of all macros
+    {
+        p1.posX = macroIter1->second.posX;
+        p1.posY = macroIter1->second.posY;
+        p2.posX = macroIter1->second.originPos.posX;
+        p2.posY = macroIter1->second.originPos.posY;
+        double dis = getDistance(p1, p2);
+        cout << macroIter1->second.macroName << " displaced " << dis << endl;
+    }
 }
 
 void output(string filename)
@@ -1163,14 +1338,14 @@ int main(int argc, char* argv[])
     defFile = fileName + defFile;
     mlistFile = fileName + mlistFile;
     verilogFile = fileName + verilogFile;
-
-    read_constraint("case02.txt");
-    read_lef_file("case02.lef");
-    read_def_file("case02.def");
-    read_mlist_file("case02.mlist");
-    read_verilog_file("case02.v");
     */
-
+    /*
+    read_constraint("case03.txt");
+    read_lef_file("case03.lef");
+    read_def_file("case03.def");
+    read_mlist_file("case03.mlist");
+    read_verilog_file("case03.v");
+    */
     string current_exec_name = argv[0]; // Name of the current exec program
 
     vector<string> all_args(argv, argv + argc);
@@ -1185,7 +1360,10 @@ int main(int argc, char* argv[])
     read_mlist_file(all_args[4]);
     read_verilog_file(all_args[1]);
 
+
+
     displace(macro_map, cell_map);
+    //calculateDisplaceDistance(macro_map);
     flipping(macro_map, cell_map);
 
     output(all_args[6]);
@@ -1452,6 +1630,7 @@ bool checkOverlap(const MACRO& macro, unordered_map<string, MACRO>& macroMap)//r
         if(doOverlap(l1, r1, l2, r2))
         {
             overlapped = true;
+            cout << "# " << macro.macroName << " and " << macroIter2->second.macroName << " overlapped." << endl;
             break;
         }
     }
@@ -1484,9 +1663,16 @@ bool doOverlap(Float_Point l1, Float_Point r1, Float_Point l2, Float_Point r2)
 bool checkOutOfBounds(const MACRO& macro)//return true if out of bounds
 {
     if (macro.posX + macro.size.width*2000 > die_vector[1].posX)
+    {
+        cout << macro.macroName << " out of bounds on x-axis!" << endl;
         return true;
+    }
     if (macro.posY + macro.size.height*2000 > die_vector[1].posY)
+    {
+        cout << macro.macroName << " out of bounds on y-axis!" << endl;
         return true;
+    }
+
 
     return false;
 }
