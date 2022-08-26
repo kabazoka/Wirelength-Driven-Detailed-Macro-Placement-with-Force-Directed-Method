@@ -162,7 +162,7 @@ unordered_map<string, PIN>::iterator pin_map_iter;
 unordered_map<string, MACRO> mod_macro_map; //modified macro map
 
 //functions
-int getdir(string dir, vector<string> &files);
+//int getdir(string dir, vector<string> &files);
 
 double getDistance(Point, Point);//return the manhattan distance
 bool checkOverlap(const MACRO&, unordered_map<string, MACRO>&);//return true if overlapped
@@ -170,7 +170,7 @@ bool doOverlap(Float_Point, Float_Point, Float_Point, Float_Point);
 vector<string> splitByPattern(string content, const string& pattern);
 string &trim(string &str);
 int vector_to_int(vector<int>);
-double getWireLength(MACRO, const unordered_map<string, MACRO>&, unordered_map<string, STD_CELL>&);//per macro
+double getWireLength(unordered_map<string, MACRO>&, unordered_map<string, STD_CELL>&);//per macro
 MACRO macroDisplace(MACRO, int);
 bool checkOutOfBounds(const MACRO&);//return true if out of bounds
 
@@ -658,6 +658,7 @@ void read_mlist_file(const string& fileName)
                     macro.orient = content_array[6];
                     macro_map.insert(pair<string, MACRO>(compName, macro));
                     cell_class_map.erase(macro.macroType);
+                    cell_map.erase(macro.macroName);
                 }
             }
         }
@@ -771,6 +772,8 @@ void flipping(unordered_map<string, MACRO> macroMap, unordered_map<string, STD_C
     double shortestSum = 0, initialSum = 0;
     for (macroIter1 = macroMap.begin(); macroIter1 != macroMap.end() ; macroIter1++) //loop of all macros
     {
+        if (macroIter1->second.placeType == "FIXED")
+            continue;
         double shortestLength = 0, initialLength = 0;
         MACRO sourceMacro = macroIter1 -> second;
         STD_CELL targetCell;
@@ -874,10 +877,127 @@ void flipping(unordered_map<string, MACRO> macroMap, unordered_map<string, STD_C
     total *=100;
     cout << "# Macro flipping completed." << endl;
     cout << "# Reduced " << total << "% of wire length. \n" << endl;
-
-
 }
-
+/*
+void flipping2(unordered_map<string, MACRO> macroMap, unordered_map<string, STD_CELL> cellMap)
+{
+    cout << "# Start macro flipping again..." << endl;
+    multimap<string, MACRO> multiMacroMap;
+    multimap<string, MACRO>:: iterator multiMacroMapIter;
+    for (macroIter1 = macroMap.begin(); macroIter1 != macroMap.end() ; macroIter1++) //loop of all macros
+    {
+        multiMacroMap.insert(pair<string, MACRO>(macroIter1->first, macroIter1->second));
+    }
+    double shortestSum = 0, initialSum = 0;
+    for (multiMacroMapIter = multiMacroMap.begin(); multiMacroMapIter != multiMacroMap.end() ; multiMacroMapIter++) //loop of all macros
+    {
+        if (multiMacroMapIter->second.placeType == "FIXED")
+            continue;
+        double shortestLength = 0, initialLength = 0;
+        MACRO sourceMacro = multiMacroMapIter -> second;
+        STD_CELL targetCell;
+        unordered_map<string, MACRO>::iterator macroIter2;
+        unordered_map<string, STD_CELL>::iterator cellIter2;
+        Orientation currentOri = N, shortestOri = N;
+        if (sourceMacro.orient == "N")
+            currentOri = N;
+        else if(sourceMacro.orient == "FN")
+            currentOri = FN;
+        else if(sourceMacro.orient == "S")
+            currentOri = S;
+        else if(sourceMacro.orient == "FS")
+            currentOri = FS;
+        for (int ori = currentOri; ori <= 3; ori++)//flipping the macro
+        {
+            double sumOfLength = 0;
+            for (pin_map_iter = sourceMacro.pin_map.begin(); pin_map_iter != sourceMacro.pin_map.end() ; pin_map_iter++) //loop of all pins in a macro
+            {
+                Point sourceP{}, targetP{};
+                PIN sourcePin = pin_map_iter->second;
+                string wireName = sourcePin.connected_wire; //get the pin's connected wire
+                vector<PIN_INDEX> pinVec = netlistMap[wireName];
+                for (auto & i : pinVec) //loop of all of the pins that the wire connects
+                {
+                    PIN_INDEX pinIndex = i;
+                    double tmpX{}, tmpY{};
+                    tmpX = (sourceMacro.posX) / 2000;
+                    tmpY = (sourceMacro.posY) / 2000;
+                    if (ori == 0) //N
+                    {
+                        sourceP.posX = tmpX + sourcePin.relativePoint.posX;
+                        sourceP.posY = tmpY + sourcePin.relativePoint.posY;
+                    }
+                    if (ori == 1) //FN
+                    {
+                        sourceP.posX = tmpX + (sourceMacro.size.width - sourcePin.relativePoint.posX);
+                        sourceP.posY = tmpY + sourcePin.relativePoint.posY;
+                    }
+                    if (ori == 2) //S
+                    {
+                        sourceP.posX = tmpX + sourcePin.relativePoint.posX;
+                        sourceP.posY = tmpY + (sourceMacro.size.height - sourcePin.relativePoint.posY);
+                    }
+                    if (ori == 3) //FS
+                    {
+                        sourceP.posX = tmpX + (sourceMacro.size.width - sourcePin.relativePoint.posX);
+                        sourceP.posY = tmpY + (sourceMacro.size.height - sourcePin.relativePoint.posY);
+                    }
+                    auto item = cellMap.find(pinIndex.macro_name);
+                    if (item != cellMap.end())
+                    {
+                        cellIter2 = cellMap.find(pinIndex.macro_name); //find the target cell
+                        targetCell = cellIter2->second;
+                        unordered_map<string, PIN> targetPinMap = targetCell.pin_map; //get the target pin map
+                        PIN targetPin = targetPinMap[pinIndex.pin_name]; //get the pin from the pin map with index
+                        tmpX = (targetCell.posX) / 2000;
+                        tmpY = (targetCell.posY) / 2000;
+                        targetP.posX = tmpX + targetPin.relativePoint.posX;
+                        targetP.posY = tmpY + targetPin.relativePoint.posY;
+                    }
+                    else
+                    {
+                        macroIter2 = macroMap.find(pinIndex.macro_name); //find the target macro
+                        MACRO targetMacro = macroIter2->second;
+                        unordered_map<string, PIN> targetPinMap = targetMacro.pin_map; //get the target pin map
+                        PIN targetPin = targetPinMap[pinIndex.pin_name]; //get the pin from the pin map with index
+                        tmpX = (targetMacro.posX) / 2000;
+                        tmpY = (targetMacro.posY) / 2000;
+                        targetP.posX = tmpX + targetPin.relativePoint.posX;
+                        targetP.posY = tmpY + targetPin.relativePoint.posY;
+                    }
+                    sumOfLength += getDistance(sourceP, targetP);
+                }
+            }
+            currentOri = static_cast<Orientation>(ori);
+            if (shortestLength == 0 || shortestLength > sumOfLength)
+            {
+                shortestLength = sumOfLength;
+                shortestOri = currentOri;
+            }
+            if (initialLength == 0)
+            {
+                initialLength = sumOfLength;
+            }
+        }
+        if (shortestOri == N)
+            sourceMacro.orient = "N";
+        else if(shortestOri == FN)
+            sourceMacro.orient = "FN";
+        else if(shortestOri == S)
+            sourceMacro.orient = "S";
+        else if(shortestOri == FS)
+            sourceMacro.orient = "FS";
+        macro_map[sourceMacro.macroName] = sourceMacro;
+        shortestSum += shortestLength;
+        initialSum += initialLength;
+    }
+    double total = initialSum - shortestSum;
+    total /= initialSum;
+    total *=100;
+    cout << "# Macro flipping completed." << endl;
+    cout << "# Reduced " << total << "% of wire length. \n" << endl;
+}
+*/
 void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string, STD_CELL>& cellMap)
 {
     cout << "# Start macro displacement..." << endl;
@@ -899,20 +1019,40 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
         for (pin_map_iter = sourceMacro.pin_map.begin(); pin_map_iter != sourceMacro.pin_map.end() ; pin_map_iter++) //loop of all pins in a macro
         {
             Point sourceP{}, targetP{};
-            double x_force{}, y_force{}, mgntd{}, m_x_force{}, m_y_force{};
-            double distance{};
+            double x_force{}, y_force{};
+            FORCE F;
             PIN sourcePin = pin_map_iter->second;
             string wireName = sourcePin.connected_wire; //get the pin's connected wire
             vector<PIN_INDEX> pinVec = netlistMap[wireName];
+            //cout << "source macro: " << sourceMacro.macroName << " source pin " << sourcePin.pin_name << endl;
             for (auto & i : pinVec) //loop of all the pins that the wire connects
             {
                 PIN_INDEX pinIndex = i;
+                if (sourceMacro.macroName == pinIndex.macro_name)
+                    continue;
                 double tmpX{}, tmpY{};
                 tmpX = sourceMacro.posX / 2000;
                 tmpY = sourceMacro.posY / 2000;
-                sourceP.posX = tmpX + sourcePin.relativePoint.posX;
-                sourceP.posY = tmpY + sourcePin.relativePoint.posY;
-
+                if (sourceMacro.orient == "N") //N
+                {
+                    sourceP.posX = tmpX + sourcePin.relativePoint.posX;
+                    sourceP.posY = tmpY + sourcePin.relativePoint.posY;
+                }
+                if (sourceMacro.orient == "FN") //FN
+                {
+                    sourceP.posX = tmpX + (sourceMacro.size.width - sourcePin.relativePoint.posX);
+                    sourceP.posY = tmpY + sourcePin.relativePoint.posY;
+                }
+                if (sourceMacro.orient == "S") //S
+                {
+                    sourceP.posX = tmpX + sourcePin.relativePoint.posX;
+                    sourceP.posY = tmpY + (sourceMacro.size.height - sourcePin.relativePoint.posY);
+                }
+                if (sourceMacro.orient == "FS") //FS
+                {
+                    sourceP.posX = tmpX + (sourceMacro.size.width - sourcePin.relativePoint.posX);
+                    sourceP.posY = tmpY + (sourceMacro.size.height - sourcePin.relativePoint.posY);
+                }
                 auto item = cellMap.find(pinIndex.macro_name);
                 if (item != cellMap.end())
                 {
@@ -920,6 +1060,8 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
                     targetCell = cellIter2->second;
                     targetP.posX = (targetCell.posX) / 2000;
                     targetP.posY = (targetCell.posY) / 2000;
+                    //cout << "target cell: " << cellIter2->second.cellName << " " << cellIter2->second.posX / 2000 <<
+                    //" " << cellIter2->second.posY / 2000<< endl;
                 }
                 else
                 {
@@ -931,20 +1073,23 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
                     tmpY = (targetMacro.posY) / 2000;
                     targetP.posX = tmpX + targetPin.relativePoint.posX;
                     targetP.posY = tmpY + targetPin.relativePoint.posY;
+                    //cout << "target macro: " << macroIter2->second.macroName << " " << macroIter2->second.posX / 2000
+                    //<< " " << macroIter2->second.posY / 2000<< endl;
                 }
                 //force
-                distance += getDistance(sourceP, targetP);
-                x_force += targetP.posX - sourceP.posX;
-                y_force += targetP.posY - sourceP.posY;
+                F.xForce = targetP.posX - sourceP.posX;
+                F.yForce = targetP.posY - sourceP.posY;
+                //cout << "sourcePos: " << sourceP.posX << " " << sourceP.posY << " targetPos: " << targetP.posX << " " << targetP.posY << endl;
+                //cout << F.xForce << " " << F.yForce << endl;
+                double bevel = sqrt(F.xForce*F.xForce + F.yForce*F.yForce);
+                F.xForce = F.xForce / bevel;
+                F.yForce = F.yForce / bevel;
+                x_force += F.xForce;
+                y_force += F.yForce;
             }
-            m_x_force += x_force;
-            m_y_force += y_force;
-            mgntd = abs(m_x_force) + abs(m_y_force);
-            //cout << sourceMacro.macroName << " / " << sourcePin.pin_name << " / (x/y) " << m_x_force << " / " << m_y_force
-            //<< " / magnitude = " << mgntd << endl;
-            xForce = m_x_force;
-            yForce = m_y_force;
-            magnitude = mgntd;
+            xForce += x_force;
+            yForce += y_force;
+            magnitude = abs(xForce) + abs(yForce);
         }
         xForce = constraint.maximum_displacement * (xForce / magnitude);
         yForce = constraint.maximum_displacement * (yForce / magnitude);
@@ -1005,94 +1150,22 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
         }
         forceInfo.force = force;
         forceInfo.macroName = macroIter1->second.macroName;
-        //cout << sourceMacro.macroName << " " << xForce << " " << yForce << " / " << magnitude << endl;
+        cout << sourceMacro.macroName << " " << xForce << " " << yForce << " / " << magnitude << endl;
         forceMap.insert(pair<double, FORCE_INFO>(magnitude, forceInfo));
     }
     cout << "# Finished force calculation. Displacing..." << endl;
     //***finished calculation and start displacement***
     int overlapCount = 0, boundCount = 0;
-    cout << "# Displacement run#1..." << endl;
+    //cout << "# Displacement run#1..." << endl;
     FORCE remainForce, nextRoundForce;
     for (auto& i : forceMap)
     {
         //bool xValidMove = true, yValidMove = true;
         MACRO& sourceMacro = macroMap[i.second.macroName];
         MACRO cloneMacro = sourceMacro;
-        cout << "# Displacing " << sourceMacro.macroName << endl;
+        //cout << "# Displacing " << sourceMacro.macroName << endl;
         remainForce.xForce = i.second.force.xForce;
         remainForce.yForce = i.second.force.yForce;
-        //cout << remainForce.xForce << " " << remainForce.yForce << endl;
-        /*
-        while(abs(remainForce.xForce) > 0)
-        {
-            //movement on x-axis
-            if (i.second.force.xForce > 0)
-                cloneMacro = macroDisplace(cloneMacro, 1);
-            else
-                cloneMacro = macroDisplace(cloneMacro, 3);
-            if (checkOverlap(cloneMacro, macroMap))
-            {
-                nextRoundForce.xForce = remainForce.xForce;
-                remainForce.xForce = 0;
-                overlapCount++;
-                cloneMacro = sourceMacro;
-                break;
-            }
-            else if (checkOutOfBounds(cloneMacro))
-            {
-                nextRoundForce.xForce = remainForce.xForce;
-                remainForce.xForce = 0;
-                boundCount++;
-                cloneMacro = sourceMacro;
-                break;
-            }
-            else
-            {
-                macro_map[cloneMacro.macroName].posX = cloneMacro.posX;
-                if (remainForce.xForce > 0)
-                    remainForce.xForce -= 1;
-                else
-                    remainForce.xForce += 1;
-            }
-        }
-        cout << "Finished moving on x-axis." << endl;
-        while(abs(remainForce.yForce) > 0)
-        {
-            //movement on y-axis
-            if (i.second.force.yForce > 0)
-                cloneMacro = macroDisplace(cloneMacro, 0);
-            else
-                cloneMacro = macroDisplace(cloneMacro, 2);
-            if (checkOverlap(cloneMacro, macroMap))
-            {
-                nextRoundForce.yForce = remainForce.yForce;
-                remainForce.yForce = 0;
-                overlapCount++;
-                cloneMacro = sourceMacro;
-                break;
-            }
-            else if (checkOutOfBounds(cloneMacro))
-            {
-                nextRoundForce.yForce = remainForce.yForce;
-                remainForce.yForce = 0;
-                boundCount++;
-                cloneMacro = sourceMacro;
-                break;
-            }
-            else
-            {
-                macro_map[cloneMacro.macroName].posY = cloneMacro.posY;
-                if (remainForce.yForce > 0)
-                    remainForce.yForce -= 1;
-                else
-                    remainForce.yForce += 1;
-            }
-        }
-        cout << "Finished moving on y-axis." << endl;
-        i.second.remainForce.xForce = nextRoundForce.xForce;
-        i.second.remainForce.yForce = nextRoundForce.yForce;
-         */
-        bool validMoveX = true, validMoveY = true;
         while(remainForce.xForce != 0 || remainForce.yForce != 0)
         {
             if (remainForce.xForce != 0) {//movement on x-axis
@@ -1157,84 +1230,6 @@ void displace(unordered_map<string, MACRO>& macroMap, const unordered_map<string
     }
     cout << "# Overlap occurred " << overlapCount << " times." << endl;
     cout << "# Out of bounds occurred " << boundCount << " times." << endl;
-    /*
-    overlapCount = 0;
-    boundCount = 0;
-    cout << "\n# Displacement run#2..." << endl;
-    for (const auto& i : forceMap)
-    {
-        //bool xValidMove = true, yValidMove = true;
-        MACRO& sourceMacro = macroMap[i.second.macroName];
-        MACRO cloneMacro = sourceMacro;
-        cout << "Displacing " << sourceMacro.macroName << endl;
-        remainForce.xForce = i.second.remainForce.xForce;
-        remainForce.yForce = i.second.remainForce.yForce;
-        while(remainForce.xForce > 0)
-        {
-            //movement on x-axis
-            if (i.second.force.xForce > 0)
-                cloneMacro = macroDisplace(cloneMacro, 1);
-            else
-                cloneMacro = macroDisplace(cloneMacro, 3);
-            if (checkOverlap(cloneMacro, macroMap))
-            {
-                nextRoundForce.xForce = remainForce.xForce;
-                remainForce.xForce = 0;
-                overlapCount++;
-                cloneMacro = sourceMacro;
-                break;
-            }
-            else if (checkOutOfBounds(cloneMacro))
-            {
-                nextRoundForce.xForce = remainForce.xForce;
-                remainForce.xForce = 0;
-                boundCount++;
-                cloneMacro = sourceMacro;
-                break;
-            }
-            else
-            {
-                macro_map[cloneMacro.macroName].posX = cloneMacro.posX;
-                remainForce.xForce -= 1;
-            }
-        }
-        cout << "Finished moving on x-axis." << endl;
-        while(remainForce.yForce > 0)
-        {
-            //movement on y-axis
-            if (i.second.force.yForce > 0)
-                cloneMacro = macroDisplace(cloneMacro, 0);
-            else
-                cloneMacro = macroDisplace(cloneMacro, 2);
-            if (checkOverlap(cloneMacro, macroMap))
-            {
-                nextRoundForce.yForce = remainForce.yForce;
-                remainForce.yForce = 0;
-                overlapCount++;
-                cloneMacro = sourceMacro;
-                break;
-            }
-            else if (checkOutOfBounds(cloneMacro))
-            {
-                nextRoundForce.yForce = remainForce.yForce;
-                remainForce.yForce = 0;
-                boundCount++;
-                cloneMacro = sourceMacro;
-                break;
-            }
-            else
-            {
-                macro_map[cloneMacro.macroName].posY = cloneMacro.posY;
-                remainForce.yForce -= 1;
-            }
-        }
-        cout << "Finished moving on y-axis." << endl;
-    }
-    cout << "# Overlap occurred " << overlapCount << " times." << endl;
-    cout << "# Out of bounds occurred " << boundCount << " times." << endl;
-
-     */
-
     cout << "# Displacement completed.\n" << endl;
 }
 
@@ -1255,29 +1250,13 @@ void calculateDisplaceDistance(unordered_map<string, MACRO>& macroMap)
 void output(string filename)
 {
     ofstream ofs;
-    /*
-    string fileName = "case";
-    string fileType = ".dmp";
-    string zero = "0";
-    string caseNStr;
-    stringstream ss;
-    ss << caseN;
-    ss >> caseNStr;
-    if (caseN < 10)
-        caseNStr = zero + caseNStr;
-    fileName = fileName + caseNStr;
-    fileName = fileName + fileType;
-    */
     string str1, str2;
     stringstream ss1, ss2;
-    int caseN = 0;
     ss1 << filename[4];
     ss1 >> str1;
     ss2 << filename[5];
     ss2 >> str2;
     str1 = str1 + str2;
-    ss1 << str1;
-    ss1 >> caseN;
     ofs.open(filename);
     if (!ofs.is_open())
     {
@@ -1287,7 +1266,7 @@ void output(string filename)
     {
         cout << "# Printing DMP file...\n" << endl;
         ofs << "VERSION 5.7 ;\n";
-        ofs << "DESIGN case" << caseN << " ;\n" ;
+        ofs << "DESIGN case" << str1 << " ;\n" ;
         ofs << "UNITS DISTANCE MICRONS 2000 ;\n\n";
         ofs << "DIEAREA ";
         for (auto p : die_vector)
@@ -1313,39 +1292,31 @@ int main(int argc, char* argv[])
 {
     // ./DMP caseOO.v caseOO.lef caseOO.def caseOO.mlist caseOO.txt caseOO.dmp
     /*
-    string fileName;
-    string txtFile = ".txt";
-    string lefFile = ".lef";
-    string defFile = ".def";
-    string mlistFile = ".mlist";
-    string verilogFile = ".v";
+    read_constraint("case01.txt");
+    read_lef_file("case01.lef");
+    read_def_file("case01.def");
+    read_mlist_file("case01.mlist");
+    read_verilog_file("case01.v");
 
-    int caseNum = 0;
-    string caseNumStr, zero = "0" , caseStr = "case";
-    stringstream ss;
-    cout << "Please input the case number and place the needed file in the same folder as the .exe." << endl;
-    cout << "( Needed files including: .txt, .lef, .def, .mlist, .v files )" << endl;
-    cin >> caseNum;
-    ss << caseNum;
-    ss >> caseNumStr;
-    if (caseNum < 10)
-    {
-        caseNumStr = zero + caseNumStr;
-    }
-    fileName = caseStr + caseNumStr;
-    txtFile = fileName + txtFile;
-    lefFile = fileName + lefFile;
-    defFile = fileName + defFile;
-    mlistFile = fileName + mlistFile;
-    verilogFile = fileName + verilogFile;
-    */
+    flipping(macro_map, cell_map);
+
+    output("case01.dmp");
+     */
+
     /*
-    read_constraint("case03.txt");
-    read_lef_file("case03.lef");
-    read_def_file("case03.def");
-    read_mlist_file("case03.mlist");
-    read_verilog_file("case03.v");
+    double wireLengthBeforeDisplace = getWireLength(macro_map, cell_map);
+    cout << "# Before displace: " << wireLengthBeforeDisplace << endl;
+    displace(macro_map, cell_map);
+    double wireLengthAfterDisplace = getWireLength(macro_map, cell_map);
+    cout << "# After displace: " << wireLengthAfterDisplace << endl;
+    cout << "# After displacement: " << wireLengthAfterDisplace / wireLengthBeforeDisplace * 100
+    << "% of original wire length."<< endl;
+
+
+    calculateDisplaceDistance(macro_map);
+    flipping(macro_map, cell_map);
     */
+
     string current_exec_name = argv[0]; // Name of the current exec program
 
     vector<string> all_args(argv, argv + argc);
@@ -1360,13 +1331,9 @@ int main(int argc, char* argv[])
     read_mlist_file(all_args[4]);
     read_verilog_file(all_args[1]);
 
-
-
-    displace(macro_map, cell_map);
-    //calculateDisplaceDistance(macro_map);
     flipping(macro_map, cell_map);
-
     output(all_args[6]);
+
     /*
     char path_buffer[_MAX_PATH];
     char drive[_MAX_DRIVE];
@@ -1533,52 +1500,55 @@ int vector_to_int(vector<int> num)
     return n;
 }
 
-double getWireLength(MACRO macro, const unordered_map<string, MACRO>& macroMap, unordered_map<string, STD_CELL>& cellMap)//per macro
+double getWireLength(unordered_map<string, MACRO>& macroMap, unordered_map<string, STD_CELL>& cellMap)//per macro
 {
-    double shortestLength = 0, initialLength = 0;
-    MACRO sourceMacro = std::move(macro);
-    STD_CELL targetCell;
-    unordered_map<string, MACRO>::iterator macroIter2;
-    unordered_map<string, STD_CELL>::iterator cellIter2;
     double sumOfLength = 0;
-    for (pin_map_iter = sourceMacro.pin_map.begin(); pin_map_iter != sourceMacro.pin_map.end() ; pin_map_iter++) //loop of all pins in a macro
+    for (macroIter1 = macroMap.begin(); macroIter1 != macroMap.end() ; macroIter1++) //loop of all macros
     {
-        Point sourceP{}, targetP{};
-        PIN sourcePin = pin_map_iter->second;
-        string wireName = sourcePin.connected_wire; //get the pin's connected wire
-        vector<PIN_INDEX> pinVec = netlistMap[wireName];
-        for (auto & i : pinVec) //loop of all of the pins that the wire connects
+        double shortestLength = 0, initialLength = 0;
+        MACRO sourceMacro = macroIter1 -> second;
+        STD_CELL targetCell;
+        unordered_map<string, MACRO>::iterator macroIter2;
+        unordered_map<string, STD_CELL>::iterator cellIter2;
+        for (pin_map_iter = sourceMacro.pin_map.begin(); pin_map_iter != sourceMacro.pin_map.end() ; pin_map_iter++) //loop of all pins in a macro
         {
-            PIN_INDEX pinIndex = i;
-            double tmpX{}, tmpY{};
-            tmpX = (sourceMacro.posX) / 2000;
-            tmpY = (sourceMacro.posY) / 2000;
-            sourceP.posX = tmpX + sourcePin.relativePoint.posX;
-            sourceP.posY = tmpY + sourcePin.relativePoint.posY;
-            auto item = cellMap.find(pinIndex.macro_name);
-            if (item != cellMap.end())
+            Point sourceP{}, targetP{};
+            PIN sourcePin = pin_map_iter->second;
+            string wireName = sourcePin.connected_wire; //get the pin's connected wire
+            vector<PIN_INDEX> pinVec = netlistMap[wireName];
+            for (auto & i : pinVec) //loop of all of the pins that the wire connects
             {
-                cellIter2 = cellMap.find(pinIndex.macro_name); //find the target macro
-                targetCell = cellIter2->second;
-                unordered_map<string, PIN> targetPinMap = targetCell.pin_map; //get the target pin map
-                PIN targetPin = targetPinMap[pinIndex.pin_name]; //get the pin from the pin map with index
-                tmpX = (targetCell.posX) / 2000;
-                tmpY = (targetCell.posY) / 2000;
-                targetP.posX = tmpX + targetPin.relativePoint.posX;
-                targetP.posY = tmpY + targetPin.relativePoint.posY;
+                PIN_INDEX pinIndex = i;
+                double tmpX{}, tmpY{};
+                tmpX = (sourceMacro.posX) / 2000;
+                tmpY = (sourceMacro.posY) / 2000;
+                sourceP.posX = tmpX + sourcePin.relativePoint.posX;
+                sourceP.posY = tmpY + sourcePin.relativePoint.posY;
+                auto item = cellMap.find(pinIndex.macro_name);
+                if (item != cellMap.end())
+                {
+                    cellIter2 = cellMap.find(pinIndex.macro_name); //find the target macro
+                    targetCell = cellIter2->second;
+                    unordered_map<string, PIN> targetPinMap = targetCell.pin_map; //get the target pin map
+                    PIN targetPin = targetPinMap[pinIndex.pin_name]; //get the pin from the pin map with index
+                    tmpX = (targetCell.posX) / 2000;
+                    tmpY = (targetCell.posY) / 2000;
+                    targetP.posX = tmpX + targetPin.relativePoint.posX;
+                    targetP.posY = tmpY + targetPin.relativePoint.posY;
+                }
+                else
+                {
+                    macroIter2 = macro_map.find(pinIndex.macro_name); //find the target macro
+                    MACRO targetMacro = macroIter2->second;
+                    unordered_map<string, PIN> targetPinMap = targetMacro.pin_map; //get the target pin map
+                    PIN targetPin = targetPinMap[pinIndex.pin_name]; //get the pin from the pin map with index
+                    tmpX = (targetMacro.posX) / 2000;
+                    tmpY = (targetMacro.posY) / 2000;
+                    targetP.posX = tmpX + targetPin.relativePoint.posX;
+                    targetP.posY = tmpY + targetPin.relativePoint.posY;
+                }
+                sumOfLength += getDistance(sourceP, targetP);
             }
-            else
-            {
-                macroIter2 = macro_map.find(pinIndex.macro_name); //find the target macro
-                MACRO targetMacro = macroIter2->second;
-                unordered_map<string, PIN> targetPinMap = targetMacro.pin_map; //get the target pin map
-                PIN targetPin = targetPinMap[pinIndex.pin_name]; //get the pin from the pin map with index
-                tmpX = (targetMacro.posX) / 2000;
-                tmpY = (targetMacro.posY) / 2000;
-                targetP.posX = tmpX + targetPin.relativePoint.posX;
-                targetP.posY = tmpY + targetPin.relativePoint.posY;
-            }
-            sumOfLength += getDistance(sourceP, targetP);
         }
     }
     return sumOfLength;
