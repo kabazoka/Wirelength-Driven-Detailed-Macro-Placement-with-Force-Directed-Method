@@ -1,23 +1,28 @@
-# ICCAD 2022 Problem D
-
-http://iccad-contest.org/tw/Problems/CADContest_2022_Problem_D_20220826.pdf
-
-http://iccad-contest.org/tw/03_problems.html
-
-# Build: g++/gcc
-
-# Usage: ./main caseOO.v caseOO.lef caseOO.def caseOO.mlist caseOO.txt caseOO.dmp
-      
-Testcases for testing: http://iccad-contest.org/tw/Problems/testcase/Problem%20D_cases_0824.tar.gz
- 
 # Wirelength Driven Detailed Macro Placement with Force-Directed Method
+
+---
 
 Created: November 3, 2023 11:57 PM
 Last Edited Time: November 4, 2023 12:05 AM
 
+# Usage
+
+---
+
+Build: GCC/G++
+
+Usage:
+``./main caseOO.v caseOO.lef caseOO.def caseOO.mlist caseOO.txt caseOO.dmp``
+
 # Introduction
 
 ---
+
+This is the problem from the 2022 ICCAD Contest
+
+http://iccad-contest.org/tw/Problems/CADContest_2022_Problem_D_20220826.pdf
+
+http://iccad-contest.org/tw/03_problems.html
 
 In order to reduce the design cycles and the time consumption of designing, the IP (Intellectual Property) modules and embedded memory (as known as macros) had been popularly used in IC designs. These kinds of designs had been named as **“Mixed-size Circuit Design”** because they have included macros and standard cells within a chip. As the mixed-size circuit design nowadays often include thousands of macros and millions of standard cells. The industries need the modern placing tools to fulfill the demands of design. The most general design method of mixed-size placement includes three phases:
 
@@ -35,7 +40,7 @@ This phase can furtherly divide as subproblems of **“Macro Legalization”** a
 
 ---
 
-![image.png](Wirelength%20Driven%20Detailed%20Macro%20Placement%20with%20Fo%20b259182a21aa4ec18bc9d1020109fb9b/image.png)
+![image.png](images/image.png)
 
 Given a netlist and its layout, including a place-able area and legal placement of the macros. We have to find out the best placement and orientation of the moveable macros by flipping and slightly adjusting their placement according to the given optimization goals and placement constraints.
 Three types of files will be given:
@@ -60,7 +65,7 @@ In order to reduce time for searching, we decide to use <unordered_map> in C++11
 
 After we collected all of the information including the macros/cells and the netlist stored in the Verilog file, we can start to optimize the placement of the macros. We choose to use the force directed method in order to reduce the total wirelength.
 
-![SP_Poster_A0.png](Wirelength%20Driven%20Detailed%20Macro%20Placement%20with%20Fo%20b259182a21aa4ec18bc9d1020109fb9b/SP_Poster_A0.png)
+![SP_Poster_A0.png](images/SP_Poster_A0.png)
 
 By this method, we regard every connected wire of a macro as forces, and by combining them together we can get a resulting force. (See figure b and c.) If we move the target macro following the resulting force, we can get the wirelength reduction.
 
@@ -68,7 +73,7 @@ By this method, we regard every connected wire of a macro as forces, and by comb
 
 We choose to implement the flipping algorithm by exhaustive search method due to the actual run time is pretty little. By this method we flip a target macro in every direction to find out the shortest wirelength. For each macro:
 
-![SP_Poster_A0 (1).png](Wirelength%20Driven%20Detailed%20Macro%20Placement%20with%20Fo%20b259182a21aa4ec18bc9d1020109fb9b/SP_Poster_A0_(1).png)
+![SP_Poster_A0 (1).png](images/SP_Poster_A0_(1).png)
 
 Then we flip the macro in four orientations to find out the shortest wirelength of each macro. And we do the same method to all the macros to find out the minimum global wirelength.
 Here's the result of the left percentage of the wirelength after the functions:
@@ -101,4 +106,4 @@ Here's the result of the left percentage of the wirelength after the functions:
 
 We evaluate our program by NTUplace3. The results are determined by HPWL (Half-Perimeter Wirelength) (less is better). As you can see from the table above, the results of the displacement did not go well even though the wirelength has been reduced. The reason of this happens is because of the legal placement of the macros given from the .mlist file has a huge difference with the initial placement given by the DEF file (See figure d and e). And after the NTUplace3 do the cell placement, the cell might be moved by a large distance because of the overlapping between the macros and cells causing the increase of the total wirelength. Thus, we decided to do the flip only in our program to ensure the results are guaranteed to be better.
 
-![SP_Poster_A0 (2).png](Wirelength%20Driven%20Detailed%20Macro%20Placement%20with%20Fo%20b259182a21aa4ec18bc9d1020109fb9b/SP_Poster_A0_(2).png)
+![SP_Poster_A0 (2).png](images/SP_Poster_A0_(2).png)
