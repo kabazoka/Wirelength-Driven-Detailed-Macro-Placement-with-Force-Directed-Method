@@ -1,13 +1,9 @@
 # Wirelength Driven Detailed Macro Placement with Force-Directed Method
 
----
-
 Created: November 3, 2023 11:57 PM
 Last Edited Time: November 4, 2023 12:05 AM
 
 # Usage
-
----
 
 Build: GCC/G++
 
@@ -15,8 +11,6 @@ Usage:
 ``./main caseOO.v caseOO.lef caseOO.def caseOO.mlist caseOO.txt caseOO.dmp``
 
 # Introduction
-
----
 
 This is the problem from the 2022 ICCAD Contest
 
@@ -38,8 +32,6 @@ This phase can furtherly divide as subproblems of **“Macro Legalization”** a
 
 # Problem Description
 
----
-
 ![image.png](images/image.png)
 
 Given a netlist and its layout, including a place-able area and legal placement of the macros. We have to find out the best placement and orientation of the moveable macros by flipping and slightly adjusting their placement according to the given optimization goals and placement constraints.
@@ -50,8 +42,6 @@ ii. minimum_channel_spacing_between_macros_constraint
 iii. macro_halo
 
 # Research Method
-
----
 
 We Separate the method into 3 phases:
 
@@ -93,8 +83,6 @@ Here's the result of the left percentage of the wirelength after the functions:
 | Average | 99.0293% |
 
 # Results and Discussion
-
----
 
 |  | Original | Displace and Flip | Flip Only |
 | --- | --- | --- | --- |
