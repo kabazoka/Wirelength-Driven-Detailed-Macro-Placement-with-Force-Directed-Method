@@ -4,4 +4,4 @@ project(iccad)
 set(CMAKE_CXX_STANDARD 14)
 
 add_executable(iccad
-        main.cpp)
+        src/main.cpp)
