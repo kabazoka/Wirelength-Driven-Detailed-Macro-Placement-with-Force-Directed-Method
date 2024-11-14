@@ -5,10 +5,17 @@ Last Edited Time: November 4, 2023 12:05 AM
 
 # Usage
 
-Build: GCC/G++
+Build with CMake:
+
+```
+cmake . && make
+```
 
 Usage:
-``./main caseOO.v caseOO.lef caseOO.def caseOO.mlist caseOO.txt caseOO.dmp``
+
+```
+./iccad <verilog file path> <lef file path> <def file path> <mlist file path> <txt file path> <output dmp file path>
+```
 
 # Introduction
 
@@ -49,7 +56,7 @@ We Separate the method into 3 phases:
 
 The first step of our program is to combine different information of the cells/macros which were given in the different input files (LEF, DEF, .Mlist). The LEF (Library Exchange File) file contains the physical information of all of the types of the macros/cells. We have to store the information contain in it at the beginning so that when we are collecting individual cells/macros’ information from the DEF file or and the .mlist file, we can get the corresponding cell/macro type’s information given by the LEF file.
 
-In order to reduce time for searching, we decide to use <unordered_map> in C++11 STL library to contain the information of the macros and cells. The time complexity of the find() function of <unordered_map> is O(1) because of the <unordered_map> is implemented by hash table. By using this data structure, we reduce the time of reading input files theoretically comparing to using the <map> of C++ STL library.
+In order to reduce time for searching, we decide to use <unordered_map> in C++11 STL library to contain the information of the macros and cells. The time complexity of the find() function of <unordered_map> is O(1) because of the <unordered_map> is implemented by hash table. By using this data structure, we reduce the time of reading input files theoretically comparing to using the `<map>` of C++ STL library.
 
 **ii. Displacement**
 
@@ -68,29 +75,29 @@ We choose to implement the flipping algorithm by exhaustive search method due to
 Then we flip the macro in four orientations to find out the shortest wirelength of each macro. And we do the same method to all the macros to find out the minimum global wirelength.
 Here's the result of the left percentage of the wirelength after the functions:
 
-|  | After Displace |
-| --- | --- |
-| Case 1 | 99.6685% |
-| Case 2 | 99.4496% |
-| Case 3 | 99.8393% |
-| Average | 99.6524% |
+|         | After Displace |
+| ------- | -------------- |
+| Case 1  | 99.6685%       |
+| Case 2  | 99.4496%       |
+| Case 3  | 99.8393%       |
+| Average | 99.6524%       |
 
-|  | After Flipping |
-| --- | --- |
-| Case 1 | 98.9456% |
-| Case 2 | 99.4473% |
-| Case 3 | 98.6952% |
-| Average | 99.0293% |
+|         | After Flipping |
+| ------- | -------------- |
+| Case 1  | 98.9456%       |
+| Case 2  | 99.4473%       |
+| Case 3  | 98.6952%       |
+| Average | 99.0293%       |
 
 # Results and Discussion
 
-|  | Original | Displace and Flip | Flip Only |
-| --- | --- | --- | --- |
-| Case 1 | 223,512,126,333 | 223,598,689,971 | 221,687,578,038 |
-| Case 2 | 287,587,421,039 | 287,837,750,235 | 290,875,098,664 |
-| Case 3 | 348,489,115,844 | 337,218,076,705 | 337,284,726,753 |
-| Case 4 | 430,704,746,568 | 425,836,277,848 | 425,836,277,848 |
-| Case 5 | 300,122,250,720 | 425,836,277,848 | 294,718,297,480 |
+|        | Original        | Displace and Flip | Flip Only       |
+| ------ | --------------- | ----------------- | --------------- |
+| Case 1 | 223,512,126,333 | 223,598,689,971   | 221,687,578,038 |
+| Case 2 | 287,587,421,039 | 287,837,750,235   | 290,875,098,664 |
+| Case 3 | 348,489,115,844 | 337,218,076,705   | 337,284,726,753 |
+| Case 4 | 430,704,746,568 | 425,836,277,848   | 425,836,277,848 |
+| Case 5 | 300,122,250,720 | 425,836,277,848   | 294,718,297,480 |
 
 We evaluate our program by NTUplace3. The results are determined by HPWL (Half-Perimeter Wirelength) (less is better). As you can see from the table above, the results of the displacement did not go well even though the wirelength has been reduced. The reason of this happens is because of the legal placement of the macros given from the .mlist file has a huge difference with the initial placement given by the DEF file (See figure d and e). And after the NTUplace3 do the cell placement, the cell might be moved by a large distance because of the overlapping between the macros and cells causing the increase of the total wirelength. Thus, we decided to do the flip only in our program to ensure the results are guaranteed to be better.
 
